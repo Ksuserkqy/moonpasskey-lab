@@ -62,6 +62,7 @@ Phase 1 提供 Base64URL 编解码和 ByteReader，两个包已补强为 44 个�
 | 文件分析 CLI、报告导出、退出码契约 | 当前入口仅输出 Hello |
 | Vue Dashboard、JS/Wasm 前端集成 | 待实现 |
 | 互操作矩阵、真实设备及浏览器测试 | 待实现 |
-| 模糊测试、持续集成测试流水线、性能基准 | 待建立 |
+| 持续集成测试流水线 | 已配置四目标检查、测试、构建、格式和接口验证，实际远程状态见对应 PR |
+| 模糊测试、性能基准 | 待建立 |
 
 当前操作结果表达编码转换、读取和 CBOR 结构解析是否成功。认证结论需要后续完整验证流程。完整 WebAuthn Level 3 符合性尚未验证。[WebAuthn Level 3 §7](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-rp-operations)

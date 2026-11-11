@@ -99,3 +99,13 @@ Phase 1 初始验收后新增 5 个永久回归测试，Base64URL 为 24 项，B
 CBOR 当前支持范围、资源预算、Generic 与 Ctap2Canonical 的 `PARTIAL` 状态及 W3C 官方示例来源分别记录在 ARCHITECTURE.md、LIMITATIONS.md 和 SPEC_MAPPING.md。上述 Phase 1 原定顺序中的 CBOR 工作现已完成，后续协议模块依项目后续 Phase 指令推进。
 
 早期暂不提交 AGENTS.md 的记录对应当时授权。本轮用户已明确授权将 P1/P2 成果和仓库开发规范纳入逻辑提交、推送功能分支并创建 Bootstrap PR。当前整合采用 P1、P2、仓库流程三个功能边界组织提交，跨阶段文档随 P2 一并纳入。
+
+## Bootstrap 开发流程与 CI
+
+本次完善 AGENTS.md 的唯一 Git Workflow Policy，增加 CONTRIBUTING.md、CHANGELOG.md、PR 模板和 MoonBit CI。后续每个 Phase 使用独立 feature branch 与 PR，采用 Conventional Commits，PR 附真实测试报告，当前提交 CI 通过后申请合并。合并需要用户明确授权。
+
+CI 固定 Ubuntu 24.04、MoonBit 归档 `0.10.20+65efd5b93` 和 Node.js 24，分别运行 wasm、wasm-gc、js、native 的检查、107 项测试、构建及 Hello 入口，同时验证格式和生成接口。安装使用官方脚本，checkout / setup-node 使用已核验的固定提交。远程执行状态和运行链接记录在 Bootstrap PR，仓库配置中的四目标矩阵本身表达待执行检查。
+
+P1 和 P2 提交分别从暂存区独立导出验证，P1 为 44 通过，P2 为四目标各 107 通过。当前工作区另行复测四目标，每目标仍为 107 通过、0 失败。`moon check --deny-warn`、`moon build --deny-warn`、`moon fmt --check`、`git diff --check` 均通过，`moon run cmd/main` 输出 `Hello`，`moon tree` 显示无外部依赖。`moon info && moon fmt` 未产生额外的公开接口或代码变化。
+
+整合期间再次检测环境时，本机工具链已变为 moon / moonrun `0.1.20261111`（`8b8d15b`）、moonc / core `0.10.21+f125caab5`。本次任务未执行安装或升级操作。A/B 导出验证使用前述 `0.10.20+65efd5b93` 工具链，最后一轮工作区复测使用 `0.10.21+f125caab5`，四目标各 107 通过，且分别通过带 `--deny-warn` 的 check、build、入口运行。生成接口和代码保持一致。CI 固定原验收版本，并以远程执行日志确认实际安装结果。
