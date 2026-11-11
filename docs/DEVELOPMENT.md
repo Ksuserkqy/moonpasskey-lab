@@ -268,4 +268,10 @@ moon run cmd/main --target TARGET --deny-warn
 
 总数268由P1/P2的107项、P3的116项和P4的45项组成。测试阶段曾出现一项集成 context 预期仍使用独立key路径的失败，现按方法的 authData 相对路径修正预期，并完成上述四目标全量复测。代码和标准映射已进行 AI 静态审查，维护者人工验收由 PR 审查完成。
 
-CI 继续使用 Ubuntu24.04、归档 `0.10.20+65efd5b93` 和 Node24。当前 P4 PR 的运行链接、head及结果在 PR 描述中记录。曲线点成员、SHA-256/签名、证书链、attestation信任与完整RP流程的状态均为 NOT_IMPLEMENTED。
+### 远程 CI 验收
+
+PR #4 的实现提交 `293b7075397d0e2dc4e755b087eec6fccba0137d` 已完成四目标 CI。日志确认 Ubuntu24.04、moon/moonrun `0.1.20261104`、moonc/core `0.10.20+65efd5b93` 和 Node24。四目标各268项通过、0失败，格式、接口比对、check/test/build/run全部成功。[Actions 43074874102](https://github.com/Ksuserkqy/moonpasskey-lab/actions/runs/43074874102)
+
+日志中 checkout 收尾步骤有既有 Node punycode 弃用提示，MoonBit 检查与编译在 `--deny-warn` 下通过。维护者人工审查待完成。后续文档提交的当前 head CI 状态记录在 PR #4。[P4 PR](https://github.com/Ksuserkqy/moonpasskey-lab/pull/4)
+
+曲线点成员、SHA-256/签名、证书链、attestation信任与完整RP流程的状态均为 NOT_IMPLEMENTED。
