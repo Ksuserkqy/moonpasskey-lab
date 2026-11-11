@@ -44,6 +44,7 @@
 - 新增原始 `authenticatorData || SHA256(clientDataJSON)` 构造入口和严格 DER Assertion 验签接口，按维护者确认采用 WebAuthn §6.5.5 线格式，基础 ECDSA 入口继续使用 raw64。
 - 增加固定版本 Wycheproof、NIST CAVP 和 SHA-256 独立向量及合成边界回归，保留 P1–P4 全部测试与原有官方字节。
 - 已评估的后端缺少可核验的独立安全审计。其公开坐标范围检查缺口由 P4 强制范围检查覆盖，具体限制和四目标证据见开发记录。
+- CI 在解析外部依赖前初始化 Mooncakes registry，供全新 runner 获取固定版本元数据。
 
 ### 文档与仓库流程
 

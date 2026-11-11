@@ -370,4 +370,4 @@ moon run cmd/main --target TARGET --deny-warn
 
 完成 AI 静态代码审查和向量字节独立核对。两套 Wycheproof 的112/113个公钥及262/484组 tcId/message/signature 与各自固定源文件逐项完全一致。NIST 15例验签结果、3个 W3C 原始 DER 签名另由 OpenSSL 复核。维护者人工验收仍待 PR 审查。
 
-远程 CI 仍使用项目固定四目标工作流，当前 PR 提交的执行结果在推送后记录。
+PR #5 的实现提交 `4bd44211cc6a64b0907531d50a8791a4b458d558` 首轮 CI 在四个目标的 `moon info` 前置依赖解析处失败。全新 runner 尚未初始化 Mooncakes registry，无法找到固定 MoonCrypt 元数据，测试步骤未执行。工作流已增加 `moon update` 获取固定依赖元数据，修正提交的四目标结果将在执行完成后补入。[首次执行日志](https://github.com/Ksuserkqy/moonpasskey-lab/actions/runs/43122248330)
