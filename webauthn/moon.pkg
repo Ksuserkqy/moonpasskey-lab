@@ -4,4 +4,8 @@ import {
   "moonbitlang/core/json",
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/sorted_map",
+  "moonbitstack/mooncrypt/hash/sha2",
+  "moonbitstack/mooncrypt/asn1",
+  "moonbitstack/mooncrypt/sign/ecdsa",
+  "moonbitstack/mooncrypt/spec",
 }

@@ -7,13 +7,23 @@ import {
 }
 
 // Values
+pub fn build_webauthn_assertion_signed_data(BytesView, BytesView) -> Result[Bytes, CryptoError]
+
+pub fn import_es256_public_key(Es256PublicKeyParameters) -> Result[ValidatedEs256PublicKey, CryptoError]
+
 pub fn parse_attestation_object(BytesView, limits? : @cbor.Limits) -> Result[AttestationObject, ParseError]
 
 pub fn parse_authenticator_data(BytesView, limits? : @cbor.Limits) -> Result[AuthenticatorData, ParseError]
 
 pub fn parse_client_data(BytesView, limits? : @cbor.Limits) -> Result[ClientData, ParseError]
 
+pub fn sha256(BytesView) -> Bytes
+
 pub fn validate_es256_credential_public_key(BytesView, limits? : @cbor.Limits) -> Result[Es256PublicKeyParameters, ParseError]
+
+pub fn verify_es256_signature(ValidatedEs256PublicKey, BytesView, BytesView) -> Result[Bool, CryptoError]
+
+pub fn verify_webauthn_es256_assertion_signature(ValidatedEs256PublicKey, BytesView, BytesView, BytesView) -> Result[Bool, CryptoError]
 
 // Errors
 
@@ -109,6 +119,19 @@ pub fn ClientDataMember::not_equal(Self, Self) -> Bool
 pub fn ClientDataMember::to_repr(Self) -> @debug.Repr
 
 #derive(Eq, @debug.Debug)
+pub(all) enum CryptoError {
+  InvalidPublicKey
+  InvalidSignatureLength(expected~ : Int32, actual~ : Int32)
+  InvalidSignatureEncoding
+  InvalidSignatureScalar(component~ : String)
+  CryptoBackendError
+  InputTooLarge
+}
+pub fn CryptoError::equal(Self, Self) -> Bool
+pub fn CryptoError::not_equal(Self, Self) -> Bool
+pub fn CryptoError::to_repr(Self) -> @debug.Repr
+
+#derive(Eq, @debug.Debug)
 pub(all) enum CurvePointValidation {
   NotPerformed
 }
@@ -187,6 +210,11 @@ pub(all) enum StatementStatus {
 pub fn StatementStatus::equal(Self, Self) -> Bool
 pub fn StatementStatus::not_equal(Self, Self) -> Bool
 pub fn StatementStatus::to_repr(Self) -> @debug.Repr
+
+pub struct ValidatedEs256PublicKey {
+  // private fields
+}
+pub fn ValidatedEs256PublicKey::parameters(Self) -> Es256PublicKeyParameters
 
 // Type aliases
 

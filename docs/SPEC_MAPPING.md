@@ -67,7 +67,7 @@ UTF-8 校验遵循 RFC 3629 的字节序列范围，拒绝 overlong、surrogate�
 
 深度从根 Array/Map 的第 1 层计起，根标量为 0 层，沿路径包含 Map key/value 内的容器，兄弟容器独立计数。新增混合容器和复合 key 回归在 `max_depth=4/5/32/64` 下核查四层与五层边界，并断言准确的错误 offset 和 context。项目预算与 CTAP 四层检查同时生效。
 
-WebAuthn §2.4 要求各 conformance class 的 CBOR encoder 使用 CTAP2 canonical，并建议 decoder 拒绝非 canonical 和重复键。§6.5.4 定义 attestationObject 的 authData、fmt、attStmt 容器，§6.5.1 要求 credentialPublicKey 使用 canonical COSE_Key 并包含 alg。§8.7 的 none 格式要求空 attStmt map。P3 已调用此 profile 实现字段结构解析；P4 显式提供 ES256 参数验证，密码学验证仍未实现。[WebAuthn Level 3 §2.4、§6.5、§8.7](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/)
+WebAuthn §2.4 要求各 conformance class 的 CBOR encoder 使用 CTAP2 canonical，并建议 decoder 拒绝非 canonical 和重复键。§6.5.4 定义 attestationObject 的 authData、fmt、attStmt 容器，§6.5.1 要求 credentialPublicKey 使用 canonical COSE_Key 并包含 alg。§8.7 的 none 格式要求空 attStmt map。P3 调用此 profile 实现字段结构解析，P4 提供显式 ES256 参数验证，P5 的点与签名检查见本文末尾。[WebAuthn Level 3 §2.4、§6.5、§8.7](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/)
 
 COSE_Key 的 map 与必需 kty 由 RFC 9052 §7 定义。其 §9 对 Sig_structure、Enc_structure、MAC_structure 规定 definite/minimal 编码，同时禁止生成和处理含重复 label 的 map。credentialPublicKey 的编码与可选参数限制继续按 WebAuthn §6.5.1 记录，COSE 密钥 Map 已能取得，ES256 必需参数验证由 P4 入口提供，其他算法语义尚未实现。[RFC 9052 §7](https://www.rfc-editor.org/rfc/rfc9052.html#section-7) [RFC 9052 §9](https://www.rfc-editor.org/rfc/rfc9052.html#section-9)
 
@@ -102,7 +102,7 @@ P3 新增 `webauthn` 包。以下 `IMPLEMENTED` 指相应结构检查已实现�
 
 ## 尚未实现的验证
 
-challenge、origin、RP ID 匹配、计数器判断、ES256 以外的 COSE 算法/曲线/参数、公钥曲线点有效性、SHA-256、签名和证书链、可信根及最终认证判断均为 `NOT_IMPLEMENTED`。官方认证套件和真实设备互操作证据尚未建立。
+challenge、origin、RP ID 匹配、计数器判断、ES256 以外的 COSE 算法/曲线/参数、证书链、可信根及最终认证判断均为 `NOT_IMPLEMENTED`。P5 单独增加 ES256 密码学能力，覆盖范围见下表。官方认证套件和真实设备互操作证据尚未建立。
 
 ## 测试数据来源与许可
 
@@ -152,3 +152,25 @@ RFC 9052 §9 的 definite/minimal 限制专门针对 Sig_structure/Enc_structure
 ### P4 数据来源
 
 §6.5.1.1 官方77-byte fixture 保持在原 `cbor/conformance_test.mbt`，只追加验证调用，通过 test-only WebAuthn import 复用，未复制或重新序列化。P3 §16 的三个注册向量追加 opt-in 参数检查，原字节和已有断言不改。各自 W3C NOTICE 继续适用。`webauthn/cose_key_test.mbt` 的正常、边界、恶意和兼容输入全部为项目合成，不冒充官方向量。
+
+## Phase 5 ES256 密码学验证
+
+P5 复用 MoonCrypt 0.4.16 的密码学实现。P4 的参数结果和 `NotPerformed` 语义继续保留，调用 `import_es256_public_key` 完成曲线点检查后才能取得 `ValidatedEs256PublicKey`。范围检查、曲线成员检查和实际验签分别有独立测试。
+
+| 固定规范条款 | 状态 | P5 覆盖 |
+| --- | --- | --- |
+| WebAuthn §5.8.5；SEC 1 v2 §3.2.2.1；SEC 2 v2 §2.4.2 | `IMPLEMENTED` | P4 检查 x/y 各32字节且小于 p，后端检查 P-256 曲线方程，有限仿射导入排除无穷远表示，cofactor 为1 |
+| FIPS 180-4 §5–6 | `IMPLEMENTED` | 原始字节 SHA-256，固定32字节输出，包含空输入、分块边界及大输入测试 |
+| RFC 9053 §2.1；FIPS 186-5 §6.4.2 | `IMPLEMENTED` | ES256 raw64 验签，R/S 固定32字节且满足 1≤R,S<n，消息由后端恰好 SHA-256 一次，允许合法 high-S |
+| WebAuthn §5.8.1、§6.1、§7.2 steps20–21 | `IMPLEMENTED` | 构造原始 authenticatorData 与原始 clientDataJSON 的 SHA-256 拼接，保留原始 JSON 编码差异 |
+| WebAuthn §6.5.5；RFC 3279 §2.2.3 | `IMPLEMENTED` | `verify_webauthn_es256_assertion_signature` 接受原始 ASN.1 DER，限制8–72字节，要求完整 SEQUENCE 恰含两个最小编码的非负 INTEGER，再检查标量并转换成 raw64 验签 |
+| WebAuthn §7.2 完整 RP 验证 | `PARTIAL` | 本阶段覆盖密码学原语和签名输入构造，challenge/origin/RP ID/UP/UV/signCount 等策略留待后续 |
+| WebAuthn §8.2 packed attestation | `NOT_IMPLEMENTED` | 已研究签名输入规则，完整格式语义、证书和信任检查待实现 |
+| RFC 6979 §3、Appendix A | `NOT_IMPLEMENTED` | 本项目提供验签，确定性 nonce 和私钥签名只作研究参考，测试采用固定公开验证向量 |
+| FIPS 186-5 整体合规及模块认证 | `PARTIAL` | 仅对照 P-256 ECDSA 验签要求和独立向量，未建立 FIPS 模块认证或整体符合性证据 |
+
+固定来源包括 W3C 2026-08-25 REC、RFC 9053（August 2022）、RFC 3279（April 2002）、RFC 6979（August 2013）、FIPS 180-4（August 2015）和 FIPS 186-5（February 2023）。FIPS 186-5 官方页面于 2025-05-12 列出的四项潜在更新涉及 deterministic nonce 和 RSA 素数生成，未列出 P-256 验签步骤的变更。[WebAuthn §6.5.5](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-signature-attestation-types) · [WebAuthn §7.2](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-verifying-assertion) · [RFC 9053 §2.1](https://www.rfc-editor.org/rfc/rfc9053.html#section-2.1) · [RFC 3279 §2.2.3](https://www.rfc-editor.org/rfc/rfc3279.html#section-2.2.3) · [RFC 6979](https://www.rfc-editor.org/rfc/rfc6979.html) · [FIPS 180-4](https://csrc.nist.gov/pubs/fips/180-4/upd1/final) · [FIPS 186-5](https://csrc.nist.gov/pubs/fips/186-5/final) · [SEC 1 v2](https://www.secg.org/sec1-v2.pdf) · [SEC 2 v2](https://www.secg.org/sec2-v2.pdf)
+
+### P5 独立测试向量
+
+永久测试包含固定提交 `65ca494727a52944c204441c860b039e6786b99b` 的完整 Wycheproof P-256/SHA-256/P1363 262例、DER 484例、NIST CAVP P-256/SHA-256 SigVer 15例、P-256 PKV 12例和 SHA-256 公开向量。Wycheproof 使用 Apache-2.0，NIST 来源按站点版权政策注明归属。只提取公开公钥、消息、签名和预期结果。W3C §16.2/§16.4/§16.5 的原始字节继续保留，原始 DER 签名直接交给 Assertion 入口验证。精确摘要、文件、测试数量与执行结果见新增向量声明和 DEVELOPMENT。[Wycheproof raw 固定文件](https://github.com/C2SP/wycheproof/blob/65ca494727a52944c204441c860b039e6786b99b/testvectors_v1/ecdsa_secp256r1_sha256_p1363_test.json) · [DER 固定文件](https://github.com/C2SP/wycheproof/blob/65ca494727a52944c204441c860b039e6786b99b/testvectors_v1/ecdsa_secp256r1_sha256_test.json) · [NIST CAVP ECDSA](https://csrc.nist.gov/projects/cryptographic-algorithm-validation-program/digital-signatures) · [NIST CAVP SHS](https://csrc.nist.gov/projects/cryptographic-algorithm-validation-program/secure-hashing) · [NIST 版权政策](https://www.nist.gov/copyrights-disclaimers)
