@@ -1,0 +1,117 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "ksuserkqy/moonpasskey_lab/cbor"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn parse_all(BytesView, profile? : Profile, limits? : Limits) -> Result[Value, ParseError]
+
+pub fn parse_one(BytesView, offset? : Int32, profile? : Profile, limits? : Limits) -> Result[Parsed, ParseError]
+
+// Errors
+
+// Types and methods
+#derive(Eq, @debug.Debug)
+pub(all) enum ErrorKind {
+  UnexpectedEnd(expected~ : Int32, remaining~ : Int32)
+  InvalidAdditionalInfo(Byte)
+  UnexpectedBreak
+  InvalidSimpleValue(Byte)
+  InvalidUtf8
+  DuplicateMapKey(first_offset~ : Int32)
+  NonMinimalEncoding
+  UnsortedMapKey(previous_offset~ : Int32)
+  UnsupportedTag(UInt64)
+  ForbiddenTag(UInt64)
+  UnsupportedFloat(width~ : Int32)
+  UnsupportedIndefiniteLength(major_type~ : Int32)
+  IndefiniteLengthNotAllowed
+  ResourceLimit(name~ : String, limit~ : Int32, actual~ : UInt64)
+  InvalidLimit(name~ : String, value~ : Int32)
+  InvalidOffset(Int32)
+  TrailingData(remaining~ : Int32)
+  InvalidReadLength(Int32)
+}
+pub fn ErrorKind::equal(Self, Self) -> Bool
+pub fn ErrorKind::not_equal(Self, Self) -> Bool
+pub fn ErrorKind::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Limits {
+  max_input_bytes : Int32
+  max_string_bytes : Int32
+  max_array_items : Int32
+  max_map_pairs : Int32
+  max_depth : Int32
+  max_values : Int32
+}
+pub fn Limits::new(max_input_bytes? : Int32, max_string_bytes? : Int32, max_array_items? : Int32, max_map_pairs? : Int32, max_depth? : Int32, max_values? : Int32) -> Self
+
+#derive(Eq, @debug.Debug)
+pub(all) struct ParseError {
+  offset : Int32
+  context : String
+  kind : ErrorKind
+}
+pub fn ParseError::equal(Self, Self) -> Bool
+pub fn ParseError::not_equal(Self, Self) -> Bool
+pub fn ParseError::to_repr(Self) -> @debug.Repr
+
+#derive(Eq, @debug.Debug)
+pub struct Parsed {
+  value : Value
+  consumed : Int32
+}
+pub fn Parsed::equal(Self, Self) -> Bool
+pub fn Parsed::not_equal(Self, Self) -> Bool
+pub fn Parsed::to_repr(Self) -> @debug.Repr
+
+#derive(Eq, @debug.Debug)
+pub(all) enum Profile {
+  Generic
+  Ctap2Canonical
+}
+pub fn Profile::equal(Self, Self) -> Bool
+pub fn Profile::not_equal(Self, Self) -> Bool
+pub fn Profile::to_repr(Self) -> @debug.Repr
+
+#derive(Eq, @debug.Debug)
+pub(all) struct SourceRange {
+  start : Int32
+  end : Int32
+}
+pub fn SourceRange::equal(Self, Self) -> Bool
+pub fn SourceRange::not_equal(Self, Self) -> Bool
+pub fn SourceRange::to_repr(Self) -> @debug.Repr
+
+#derive(Eq, @debug.Debug)
+pub struct Value {
+  kind : ValueKind
+  range : SourceRange
+}
+pub fn Value::encoded_length(Self) -> Int32
+pub fn Value::equal(Self, Self) -> Bool
+pub fn Value::not_equal(Self, Self) -> Bool
+pub fn Value::to_repr(Self) -> @debug.Repr
+
+#derive(Eq, @debug.Debug)
+pub(all) enum ValueKind {
+  Unsigned(UInt64)
+  Negative(UInt64)
+  ByteString(BytesView)
+  TextString(String)
+  Array(ReadOnlyArray[Value])
+  Map(ReadOnlyArray[(Value, Value)])
+  Boolean(Bool)
+  Null
+  Undefined
+  Simple(Byte)
+}
+pub fn ValueKind::equal(Self, Self) -> Bool
+pub fn ValueKind::not_equal(Self, Self) -> Bool
+pub fn ValueKind::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits

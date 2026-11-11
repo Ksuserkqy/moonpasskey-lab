@@ -1,0 +1,73 @@
+name: MoonBit CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  MOONBIT_INSTALL_VERSION: 0.10.20+65efd5b93
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  moonbit:
+    name: MoonBit (${{ matrix.target }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [wasm, wasm-gc, js, native]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24'
+
+      - name: Install pinned MoonBit toolchain and core
+        run: |
+          curl --fail --show-error --silent --location --retry 3 \
+            --connect-timeout 20 --max-time 120 \
+            https://cli.moonbitlang.com/install/unix.sh \
+            --output "$RUNNER_TEMP/moonbit-install.sh"
+          bash "$RUNNER_TEMP/moonbit-install.sh" "$MOONBIT_INSTALL_VERSION"
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+
+      - name: Report toolchain versions
+        run: |
+          moon version --all
+          moonc -v
+          node --version
+          clang --version
+
+      - name: Check formatting
+        run: moon fmt --check
+
+      - name: Verify generated public interfaces
+        run: |
+          moon info
+          git diff --exit-code -- '*.mbti'
+
+      - name: Check
+        run: moon check --target "${{ matrix.target }}" --deny-warn
+
+      - name: Test
+        run: moon test --target "${{ matrix.target }}" --deny-warn
+
+      - name: Build
+        run: moon build --target "${{ matrix.target }}" --deny-warn
+
+      - name: Run existing entry point
+        run: moon run cmd/main --target "${{ matrix.target }}" --deny-warn

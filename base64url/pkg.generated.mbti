@@ -1,0 +1,32 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "ksuserkqy/moonpasskey_lab/base64url"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub const MAX_BYTES : Int32 = 1_048_576
+
+pub const MAX_ENCODED_LENGTH : Int32 = 1_398_104
+
+pub fn decode(StringView) -> Result[Bytes, Base64UrlError]
+
+pub fn encode(BytesView, padding? : Bool) -> Result[String, Base64UrlError]
+
+// Errors
+
+// Types and methods
+#derive(Eq, @debug.Debug)
+pub(all) enum Base64UrlError {
+  InputTooLarge(actual~ : Int32, limit~ : Int32)
+  InvalidCharacter(position~ : Int32)
+  InvalidEncoding
+}
+pub fn Base64UrlError::equal(Self, Self) -> Bool
+pub fn Base64UrlError::not_equal(Self, Self) -> Bool
+pub fn Base64UrlError::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits
