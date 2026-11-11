@@ -1,0 +1,152 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "ksuserkqy/moonpasskey_lab/webauthn"
+
+import {
+  "ksuserkqy/moonpasskey_lab/cbor",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn parse_attestation_object(BytesView, limits? : @cbor.Limits) -> Result[AttestationObject, ParseError]
+
+pub fn parse_authenticator_data(BytesView, limits? : @cbor.Limits) -> Result[AuthenticatorData, ParseError]
+
+pub fn parse_client_data(BytesView, limits? : @cbor.Limits) -> Result[ClientData, ParseError]
+
+// Errors
+
+// Types and methods
+#derive(Eq, @debug.Debug)
+pub struct AttestationObject {
+  raw : BytesView
+  cbor : @cbor.Value
+  fmt : String
+  fmt_range : @cbor.SourceRange
+  auth_data : AuthenticatorData
+  auth_data_range : @cbor.SourceRange
+  auth_data_payload_range : @cbor.SourceRange
+  att_stmt : @cbor.Value
+  statement_status : StatementStatus
+}
+pub fn AttestationObject::equal(Self, Self) -> Bool
+pub fn AttestationObject::not_equal(Self, Self) -> Bool
+pub fn AttestationObject::to_repr(Self) -> @debug.Repr
+
+#derive(Eq, @debug.Debug)
+pub struct AttestedCredentialData {
+  raw : BytesView
+  range : @cbor.SourceRange
+  aaguid : BytesView
+  aaguid_range : @cbor.SourceRange
+  credential_id_length : UInt32
+  credential_id_length_range : @cbor.SourceRange
+  credential_id : BytesView
+  credential_id_range : @cbor.SourceRange
+  credential_public_key : @cbor.Value
+  credential_public_key_raw : BytesView
+}
+pub fn AttestedCredentialData::equal(Self, Self) -> Bool
+pub fn AttestedCredentialData::not_equal(Self, Self) -> Bool
+pub fn AttestedCredentialData::to_repr(Self) -> @debug.Repr
+
+#derive(Eq, @debug.Debug)
+pub struct AuthenticatorData {
+  raw : BytesView
+  rp_id_hash : BytesView
+  rp_id_hash_range : @cbor.SourceRange
+  flags : AuthenticatorFlags
+  flags_range : @cbor.SourceRange
+  sign_count : UInt32
+  sign_count_range : @cbor.SourceRange
+  attested : AttestedCredentialData?
+  extensions : @cbor.Value?
+  extensions_raw : BytesView?
+}
+pub fn AuthenticatorData::equal(Self, Self) -> Bool
+pub fn AuthenticatorData::not_equal(Self, Self) -> Bool
+pub fn AuthenticatorData::to_repr(Self) -> @debug.Repr
+
+#derive(Eq, @debug.Debug)
+pub struct AuthenticatorFlags {
+  raw : Byte
+  up : Bool
+  uv : Bool
+  be : Bool
+  bs : Bool
+  at : Bool
+  ed : Bool
+  reserved : Byte
+}
+pub fn AuthenticatorFlags::equal(Self, Self) -> Bool
+pub fn AuthenticatorFlags::not_equal(Self, Self) -> Bool
+pub fn AuthenticatorFlags::to_repr(Self) -> @debug.Repr
+
+#derive(Eq, @debug.Debug)
+pub struct ClientData {
+  raw : BytesView
+  type_ : String
+  challenge : String
+  origin : String
+  cross_origin : Bool?
+  top_origin : String?
+  members : ReadOnlyArray[ClientDataMember]
+}
+pub fn ClientData::equal(Self, Self) -> Bool
+pub fn ClientData::not_equal(Self, Self) -> Bool
+pub fn ClientData::to_repr(Self) -> @debug.Repr
+
+#derive(Eq, @debug.Debug)
+pub struct ClientDataMember {
+  name : String
+  key_range : @cbor.SourceRange
+  value_range : @cbor.SourceRange
+}
+pub fn ClientDataMember::equal(Self, Self) -> Bool
+pub fn ClientDataMember::not_equal(Self, Self) -> Bool
+pub fn ClientDataMember::to_repr(Self) -> @debug.Repr
+
+#derive(Eq, @debug.Debug)
+pub(all) enum ErrorKind {
+  UnexpectedEnd(expected~ : Int32, remaining~ : Int32)
+  InvalidReadLength(Int32)
+  ResourceLimit(name~ : String, limit~ : Int32, actual~ : UInt64)
+  InvalidLimit(name~ : String, value~ : Int32)
+  InvalidUtf8
+  InvalidJson
+  DuplicateMember(name~ : String, first_offset~ : Int32)
+  MissingField(String)
+  WrongType(expected~ : String)
+  InvalidFlags(Byte)
+  InvalidCredentialIdLength(UInt32)
+  InvalidExtensionKey
+  InvalidNoneStatement
+  InvalidFormatIdentifier
+  Cbor(@cbor.ErrorKind)
+  TrailingData(remaining~ : Int32)
+}
+pub fn ErrorKind::equal(Self, Self) -> Bool
+pub fn ErrorKind::not_equal(Self, Self) -> Bool
+pub fn ErrorKind::to_repr(Self) -> @debug.Repr
+
+#derive(Eq, @debug.Debug)
+pub(all) struct ParseError {
+  offset : Int32
+  context : String
+  kind : ErrorKind
+}
+pub fn ParseError::equal(Self, Self) -> Bool
+pub fn ParseError::not_equal(Self, Self) -> Bool
+pub fn ParseError::to_repr(Self) -> @debug.Repr
+
+#derive(Eq, @debug.Debug)
+pub(all) enum StatementStatus {
+  NoneStructureChecked
+  FormatNotValidated
+}
+pub fn StatementStatus::equal(Self, Self) -> Bool
+pub fn StatementStatus::not_equal(Self, Self) -> Bool
+pub fn StatementStatus::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits
