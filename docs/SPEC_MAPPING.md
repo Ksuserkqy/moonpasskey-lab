@@ -19,7 +19,7 @@ Phase 2 同日固定 RFC 8949（2020-12，STD 94）和 CTAP 2.3 Proposed Standar
 | 项目读取契约 | 大端无符号整数、精确范围、失败不推进、负数拒绝 | bytereader 包 20 个测试 |
 | 模块集成契约 | 解码结果通过 ByteReader 公共入口连续读取 | decoded binary can be consumed through ByteReader public API |
 
-默认编码省略 padding 是本项目为 WebAuthn 数据选定的策略。通用基础 decode 接受规范末尾 padding。后续 WebAuthn 字段解析需按 §3 拒绝 `=`，当前 decode 单独调用尚未执行此协议上下文约束。[WebAuthn Level 3 §3](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-dependencies)
+默认编码省略 padding 是本项目为 WebAuthn 数据选定的策略。通用基础 decode 接受规范末尾 padding。通用 decode 未执行 WebAuthn 无 padding 约束；P3 ClientDataJSON 仅保留 challenge 文本，其 Base64URL 语义及匹配仍未验证。[WebAuthn Level 3 §3](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-dependencies)
 
 ## Phase 2 CBOR 覆盖
 
@@ -67,24 +67,42 @@ UTF-8 校验遵循 RFC 3629 的字节序列范围，拒绝 overlong、surrogate�
 
 深度从根 Array/Map 的第 1 层计起，根标量为 0 层，沿路径包含 Map key/value 内的容器，兄弟容器独立计数。新增混合容器和复合 key 回归在 `max_depth=4/5/32/64` 下核查四层与五层边界，并断言准确的错误 offset 和 context。项目预算与 CTAP 四层检查同时生效。
 
-WebAuthn §2.4 要求各 conformance class 的 CBOR encoder 使用 CTAP2 canonical，并建议 decoder 拒绝非 canonical 和重复键。§6.5.4 定义 attestationObject 的 authData、fmt、attStmt 容器，§6.5.1 要求 credentialPublicKey 使用 canonical COSE_Key 并包含 alg。§8.7 的 none 格式要求空 attStmt map。上述字段结构与语义属于后续协议模块，当前 CBOR profile 提供编码检查基础。[WebAuthn Level 3 §2.4、§6.5、§8.7](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/)
+WebAuthn §2.4 要求各 conformance class 的 CBOR encoder 使用 CTAP2 canonical，并建议 decoder 拒绝非 canonical 和重复键。§6.5.4 定义 attestationObject 的 authData、fmt、attStmt 容器，§6.5.1 要求 credentialPublicKey 使用 canonical COSE_Key 并包含 alg。§8.7 的 none 格式要求空 attStmt map。P3 已调用此 profile 实现字段结构解析；COSE 语义和密码学验证仍未实现。[WebAuthn Level 3 §2.4、§6.5、§8.7](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/)
 
-COSE_Key 的 map 与必需 kty 由 RFC 9052 §7 定义。其 §9 对 Sig_structure、Enc_structure、MAC_structure 规定 definite/minimal 编码，同时禁止生成和处理含重复 label 的 map。credentialPublicKey 的编码与可选参数限制继续按 WebAuthn §6.5.1 记录，COSE 密钥解析与算法验证尚待实现。[RFC 9052 §7](https://www.rfc-editor.org/rfc/rfc9052.html#section-7) [RFC 9052 §9](https://www.rfc-editor.org/rfc/rfc9052.html#section-9)
+COSE_Key 的 map 与必需 kty 由 RFC 9052 §7 定义。其 §9 对 Sig_structure、Enc_structure、MAC_structure 规定 definite/minimal 编码，同时禁止生成和处理含重复 label 的 map。credentialPublicKey 的编码与可选参数限制继续按 WebAuthn §6.5.1 记录，COSE 密钥 Map 已能取得，必需参数与算法语义验证尚未实现。[RFC 9052 §7](https://www.rfc-editor.org/rfc/rfc9052.html#section-7) [RFC 9052 §9](https://www.rfc-editor.org/rfc/rfc9052.html#section-9)
 
-## 后续覆盖计划
+## Phase 3 协议解析覆盖
 
-| 标准范围 | 计划模块 | 所需证据 | 当前状态 |
-| --- | --- | --- | --- |
-| WebAuthn §5.8.1 | ClientDataJSON | type、challenge、origin、crossOrigin、topOrigin，原始字节保留测试 | 待实现 |
-| WebAuthn §6.1 | AuthenticatorData | rpIdHash、flags、32 位大端 signCount、截断负例 | 已有通用读取基础，字段解析待实现 |
-| WebAuthn §6.5.1 | AttestedCredentialData | AAGUID、16 位大端 credentialIdLength、credentialId 和 COSE 边界 | 已有通用读取基础，字段解析待实现 |
-| WebAuthn §6.5、§8 | AttestationObject | CBOR 结构与 none 格式，其他格式明确 unsupported | 待实现 |
-| WebAuthn §7.1、§7.2 | Security rules、Cryptography | 标准步骤逐项映射、正负例、原始签名输入、算法验证向量 | 待实现 |
-| WebAuthn §9 | Extensions | 每个支持扩展的结构、语义和未知扩展处理 | 待规划支持清单 |
+P3 新增 `webauthn` 包。以下 `IMPLEMENTED` 指相应结构检查已实现，不代表执行了 §7 的完整认证流程。WebAuthn 入口选择严格 canonical 解码，通用 `cbor.Generic` API 的行为保持原样。
 
-ByteReader 提供整数值读取。credentialIdLength 的协议范围、AT/ED 条件结构等校验归入对应解析模块。[WebAuthn Level 3 §6.1、§6.5.1](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-authenticator-data)
+| 固定规范条款 | 状态与行为 | 代表测试范围 |
+| --- | --- | --- |
+| WebAuthn §5.8.1 | `IMPLEMENTED`：必需 type/challenge/origin 字符串，crossOrigin/topOrigin 可选字段类型；保留缺省与显式 false 的区别 | create/get、缺字段、错误类型、空字符串、可选字段 |
+| WebAuthn §5.8.1、§7.1/§7.2 JSON 解码步骤 | `IMPLEMENTED`：严格 UTF-8，解析时跳过开头 BOM，原始输入及字节范围完整保留 | BOM、Unicode、空白/顺序/转义、子视图、原始字节 |
+| RFC 8259 §2–7、§8.1–8.2、§9；项目拒绝歧义策略 | `IMPLEMENTED`：JSON 语法、解码后的成员名去重、资源预算；拒绝未配对 surrogate 转义 | 截断、非法数值与转义、嵌套重复、所有预算及 64/65 层 |
+| WebAuthn §6.1、§6.1.3、§7.1/§7.2 备份位检查 | `IMPLEMENTED`：固定 37 字节、大端 UInt32、AT/ED 条件字段、BS 蕴含 BE | 0/UInt32 最大值、256 种 flags、全部前缀截断、AT+ED |
+| WebAuthn §6.5.1 | `IMPLEMENTED`：AAGUID、16-bit credentialIdLength ≤1023、精确 credentialId 与公钥 CBOR Map 范围；`PARTIAL`：COSE_Key 只做 Map 与编码检查 | 长度 0/1023/1024/65535、公钥截断、非 Map、源范围 |
+| WebAuthn §6.1、§9.1 | `IMPLEMENTED`：ED 为 Map，键符合扩展标识符规则，保留未知扩展值；`NOT_IMPLEMENTED`：逐扩展语义 | ED-only、未知值、非法标识符、CBOR 截断 |
+| WebAuthn §2.4、§3、§6.5.1；CTAP 2.3 PS §8 | `IMPLEMENTED`：在现有 CBOR 支持类型上执行 canonical 与重复键检查；完整 CBOR 类型覆盖为 `PARTIAL` | outer/key/ED 非最短头、错误键序、重复键、CTAP 四层上限 |
+| WebAuthn §6.1、§6.5.4、§8.1 | `IMPLEMENTED`：Map 形式外层、必需字段和类型、fmt 标识符、authData 内 AT、完整消费；`PARTIAL`：仅 Map attStmt | 缺字段、重复、错误类型、外层尾随、嵌套失败与位置换算 |
+| WebAuthn §8.7 | `IMPLEMENTED`：none attStmt 必须为空 Map，返回 NoneStructureChecked；未建立 attestation 信任结论 | 空 Map 成功、非空 Map 拒绝 |
+| WebAuthn §8.2–8.6、§8.8–8.9、RFC 9052 §7、RFC 9053 | `PARTIAL`：其他 fmt 保留 Map 并返回 FormatNotValidated；`NOT_IMPLEMENTED`：数组型 compound、完整 COSE/格式/密码学验证 | 未知 fmt 保留、数组明确报类型不支持范围 |
+| 项目预算和来源位置契约 | `IMPLEMENTED`：外层 Map、公钥和 ED 共享节点预算；错误含字段路径和相对公共入口的 byte offset | 聚合节点边界、主/次 offset 换算、子视图 |
 
-CBOR 阶段已固定 RFC 8949 和 CTAP2 版本，提供 Generic 与 Ctap2Canonical 两种 profile，并记录支持类型和明确拒绝的类型。后续协议模块需在调用时选定上下文，并补齐字段类型、必需成员、算法和安全规则的证据。
+固定依据：[WebAuthn Level 3，2026-08-25 REC](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/) · [CTAP 2.3，2026-02-26 PS §8](https://fidoalliance.org/specs/fido-v2.3-ps-20260226/fido-client-to-authenticator-protocol-v2.3-ps-20260226.html#message-encoding) · [RFC 8259](https://www.rfc-editor.org/rfc/rfc8259.html)。未引入 CTAP 测试数据或外部 JSON 依赖。
+
+### 结构层策略与尚未执行的语义
+
+- `crossOrigin` 和 `topOrigin` 均保留可选性；本层只校验类型，未验证 topOrigin 与 crossOrigin 的关系或任何 origin 信任。type 值、challenge 编码/匹配亦未验证。
+- RFU 位原样保留。这是本解析器的容忍策略，§6.1 对认证器的生成要求仍是置零；当前不声称检查了该生成要求。UP/UV 仅表示输入声明。
+- credential ID 长度零在结构层可表示；接受该编码不表示满足 §4 的 Credential ID 生成形式和安全要求。公钥可以是空 Map，尚不检查 kty/alg 等 COSE 必需参数。
+- §6.5.4 的 attStmtTemplate 在此固定 Level 3 版本允许 Map 或数组。本任务约定仅支持 Map，因此 compound 数组明确为 `NOT_IMPLEMENTED`；不能声称完整 AttestationObject 覆盖。
+- fmt 与扩展键按 §§8.1/9.1 检查最长 32 个 ASCII 字节，字符为 VCHAR 且排除双引号和反斜线；规范未给出非空下限，本层不增加该限制。
+- 所有错误 offset 相对于调用入口的 BytesView；AttestationObject 内错误及重复/排序错误中的附带位置均换算到外层。成功结果中的 AuthenticatorData/CBOR 子范围仍相对于 authData.raw，通过 auth_data_payload_range 关联到外层。
+
+## 尚未实现的验证
+
+challenge、origin、RP ID 匹配、计数器判断、COSE 算法/曲线/参数、公钥有效性、SHA-256、签名和证书链、可信根及最终认证判断均为 `NOT_IMPLEMENTED`。官方认证套件和真实设备互操作证据尚未建立。
 
 ## 测试数据来源与许可
 
@@ -97,3 +115,5 @@ Phase 2 原有 `cbor/cbor_test.mbt` 按上述条款构造合成字节样本，�
 新增 `cbor/conformance_test.mbt` 收录 W3C WebAuthn Level 3 2026-08-25 Recommendation §6.5.1.1 的 ES256 COSE_Key 官方规范示例，原始编码共 77 字节。测试逐项核验五个 key/value 和完整源范围。x 的 byte string 编码范围为 `[8,42)`、payload 为 `[10,42)`，y 的编码范围为 `[43,77)`、payload 为 `[45,77)`，均相对于完整示例输入。示例版权属于 2026 World Wide Web Consortium，W3C Software and Document License 2023 的许可声明保存在 `cbor/W3C-NOTICE.md`。[WebAuthn Level 3 §6.5.1.1](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-credentialpublickey-examples)
 
 同文件的两种整对重排样本由官方示例派生，来源类别为项目合成变异。它们保留坐标与 label 字节，用于 Generic 接受任意 map 顺序及 CTAP 拒绝错误排序的回归。其余新增边界样本亦为项目合成。本轮新增 12 个测试，保留原有 95 个，全仓库共 107 个，其中 CBOR 为 63 个。官方 CTAP/WebAuthn 认证测试套件和真实设备互操作证据仍待引入。
+
+P3 的 `webauthn/clientdata_test.mbt`、`authdata_test.mbt` 与 `attestation_test.mbt` 均为项目合成测试，包括手工编码、测试内构造器、截断和定向畸形变异。它们与上文 `cbor/conformance_test.mbt` 的 W3C 官方示例分开存放。没有把合成 credential key 或 none 对象标成官方向量，也未复制来源不明的数据。合成数据随本仓库采用 Apache-2.0；既有 W3C 示例继续保留原许可声明。P3 新增测试数与四目标实际验收结果见 [DEVELOPMENT.md](DEVELOPMENT.md)。

@@ -109,3 +109,58 @@ CI 固定 Ubuntu 24.04、MoonBit 归档 `0.10.20+65efd5b93` 和 Node.js 24，分
 P1 和 P2 提交分别从暂存区独立导出验证，P1 为 44 通过，P2 为四目标各 107 通过。当前工作区另行复测四目标，每目标仍为 107 通过、0 失败。`moon check --deny-warn`、`moon build --deny-warn`、`moon fmt --check`、`git diff --check` 均通过，`moon run cmd/main` 输出 `Hello`，`moon tree` 显示无外部依赖。`moon info && moon fmt` 未产生额外的公开接口或代码变化。
 
 整合期间再次检测环境时，本机工具链已变为 moon / moonrun `0.1.20261111`（`8b8d15b`）、moonc / core `0.10.21+f125caab5`。本次任务未执行安装或升级操作。A/B 导出验证使用前述 `0.10.20+65efd5b93` 工具链，最后一轮工作区复测使用 `0.10.21+f125caab5`，四目标各 107 通过，且分别通过带 `--deny-warn` 的 check、build、入口运行。生成接口和代码保持一致。CI 固定原验收版本，并以远程执行日志确认实际安装结果。
+
+## P3 WebAuthn 协议解析验收
+
+P3 从已同步的 `origin/main`（`b8ec3a6087d2e39c3725c3d0bb3a82de56e8b242`）建立 `feat/p3-webauthn-parser`；已确认 P1/P2 与公开规范 PR 均已合并。模块身份、原有包、默认目标与 CI 固定版本保持一致。
+
+实施按三个结构解析入口分工，统一放在 `webauthn` 包；私有读取/错误/预算辅助函数供包内复用。公共接口为 `parse_client_data`、`parse_authenticator_data`、`parse_attestation_object`，均接受 `BytesView` 和可选 `cbor.Limits`，返回带类型的 Result。`moon info` 只新增 `webauthn/pkg.generated.mbti`，原有 `.mbti` 未改变。
+
+### 标准库与依赖选择
+
+本机 `moonbitlang/core` 为 `0.10.21+f125caab5`，Apache-2.0；`moon tree` 确认无外部模块依赖。CI 仍固定 core/工具链归档 `0.10.20+65efd5b93`，远程结果在 P3 PR 单独记录。
+
+已检查 core/json 的解析实现与公开接口。当前版本提供重复成员与嵌套深度选项，但没有本任务需要的成员/数组/字符串/总节点预算或原始字节范围。直接构建完整 Json 对象也无法保留重复成员的源位置。P3 因此使用有界字节扫描器负责 JSON 语法、预算、重复成员与范围，仅将已经检查过长度和转义的单个字符串 token 交给 core/json 解码。没有依赖新版本可选参数，其他调用为 core/encoding/utf8、core/sorted_map 和既有 ByteReader/CBOR。无需新增外部依赖、锁文件或许可证。
+
+扫描器保留原始输入，严格检查 UTF-8，解析时只跳过开头 BOM，拒绝不成对的 surrogate 转义。未知字段照常扫描检查并通过源范围保留。它没有把重新序列化的 JSON 当作原文。完整解析契约、容忍策略和未验证的语义见 ARCHITECTURE、LIMITATIONS 与 SPEC_MAPPING。
+
+### 资源与错误审查
+
+统一复用 `cbor.Limits`：默认输入和单字符串各 1 MiB、数组 4096 项、Map/Object 1024 对、容器深度 32（配置硬上限 64）、总值 16384。JSON 字符串预算计引号内编码字节，键和值均计入总值；WebAuthn CBOR 使用 canonical profile，另有每个 CBOR 容器树最多四层的限制。外层 CBOR、嵌入公钥和 ED 共用总节点预算，后续调用扣除已消耗节点；嵌套 CBOR ResourceLimit 的 limit/actual 按该次剩余预算报告。固定二进制字段按协议精确长度读取，credential ID 另有 1023 字节线格式上限。
+
+ByteReader 负责边界读取，CBOR 返回消费长度与原始范围；解析失败保留请求/剩余长度。错误主位置均相对公共入口输入，AttestationObject 同时换算嵌套 CBOR DuplicateMapKey/UnsortedMapKey 的附带位置。成功结果的 AuthenticatorData 子范围相对于其 raw，并提供父对象 auth_data_payload_range 连接两套坐标。
+
+已执行 AI 静态代码审查及自动测试，未发现可复现越界、整数溢出或 panic；这不构成形式化证明或维护者人工验收。全套模糊测试与真实设备互操作尚未建立。签名、SHA-256、证书链、可信根与认证判断均未实现。
+
+### 实际本地执行
+
+| 环境 | P3 实测版本 |
+| --- | --- |
+| OS / CPU | Darwin / arm64 |
+| moon / moonrun | 0.1.20261111，8b8d15b |
+| moonc / core | 0.10.21+f125caab5 |
+| Node.js | v24.18.0 |
+| native C 编译器 | Apple clang 21.0.0 |
+
+保留基线 107 项，新增 99 项黑盒测试：ClientDataJSON 34、AuthenticatorData 42、AttestationObject/集成 23，总计 206 项。所有 P3 样本都是项目合成，既有官方 W3C 示例继续单独存放并保留 NOTICE。
+
+按 `.github/workflows/ci.yml` 的实际步骤对每个目标运行以下命令（用目标名替换 TARGET）：
+
+```sh
+moon info && moon fmt
+moon fmt --check
+moon check --target TARGET --deny-warn
+moon test --target TARGET --deny-warn
+moon build --target TARGET --deny-warn
+moon run cmd/main --target TARGET --deny-warn
+git diff --check
+```
+
+| 目标 | 新增 / 总测试 | 通过 / 失败 | check | build | 现有入口 |
+| --- | --- | --- | --- | --- | --- |
+| wasm | 99 / 206 | 206 / 0 | PASS | PASS | Hello |
+| wasm-gc | 99 / 206 | 206 / 0 | PASS | PASS | Hello |
+| js | 99 / 206 | 206 / 0 | PASS | PASS | Hello |
+| native | 99 / 206 | 206 / 0 | PASS | PASS | Hello |
+
+`moon info && moon fmt`、`moon fmt --check`、`git diff --check` 均通过。所有 check/test/build/run 使用 `--deny-warn`，未隐藏编译警告。CLI 仍为既有 Hello 入口，P3 未添加分析 CLI 或前端。固定旧版本工具链的 Ubuntu CI 证据以当前 P3 PR 的实际 Actions 为准，不以本机结果代替。
