@@ -6,4 +6,5 @@ import {
 
 import {
   "ksuserkqy/moonpasskey_lab/base64url",
+  "ksuserkqy/moonpasskey_lab/webauthn",
 } for "test"

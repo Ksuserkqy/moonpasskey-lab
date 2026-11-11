@@ -18,6 +18,15 @@ pub(all) enum ErrorKind {
   InvalidExtensionKey
   InvalidNoneStatement
   InvalidFormatIdentifier
+  UnsupportedAlgorithm
+  UnsupportedKeyType
+  InvalidCurve
+  InvalidCoordinateLength(expected~ : Int32, actual~ : Int32)
+  InvalidCoordinate
+  CompressedPointNotAllowed
+  PrivateKeyMaterialNotAllowed
+  ForbiddenCoseParameter(label~ : Int32)
+  UnsupportedCoseParameter
   Cbor(@cbor.ErrorKind)
   TrailingData(remaining~ : Int32)
 }
@@ -59,7 +68,7 @@ fn fail_at(
 }
 
 ///|
-/// Use the existing CBOR budgets for all three protocol entry points.
+/// Use the existing CBOR budgets for protocol parsers and validators.
 fn validate_protocol_limits(
   limits : @cbor.Limits,
   context : String,

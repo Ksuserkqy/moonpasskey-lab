@@ -2,7 +2,7 @@
 
 ## 阶段状态
 
-截至 2026-11-12，Phase 1 已实现 MoonBit `base64url` 与 `bytereader` 包，Phase 2 新增 `cbor` 包，Phase 3 新增 `webauthn` 包，提供 ClientDataJSON、AuthenticatorData 和 AttestationObject 的结构解析（attStmt 支持 Map/Array）。模块身份保持 `ksuserkqy/moonpasskey_lab@0.1.0`，默认目标为 `wasm`。`cmd/main` 当前运行后输出 `Hello`，协议分析 CLI 尚未实现。结构解析成功不代表认证成功。
+截至 2026-11-12，Phase 1 已实现 MoonBit `base64url` 与 `bytereader` 包，Phase 2 新增 `cbor` 包，Phase 3 新增 `webauthn` 包，提供 ClientDataJSON、AuthenticatorData 和 AttestationObject 的结构解析（attStmt 支持 Map/Array）。Phase 4 在同一 `webauthn` 包新增 ES256 COSE 参数验证。模块身份保持 `ksuserkqy/moonpasskey_lab@0.1.0`，默认目标为 `wasm`。`cmd/main` 当前运行后输出 `Hello`，协议分析 CLI 尚未实现。结构解析成功不代表认证成功。
 
 ## 实际目录
 
@@ -42,6 +42,8 @@ moonpasskey-lab/
 │   ├── clientdata.mbt
 │   ├── authdata.mbt
 │   ├── attestation.mbt
+│   ├── cose_key.mbt
+│   ├── cose_key_test.mbt
 │   ├── clientdata_test.mbt
 │   ├── authdata_test.mbt
 │   ├── attestation_test.mbt
@@ -70,7 +72,7 @@ moonpasskey-lab/
 
 | 层 | 职责 | 当前状态 |
 | --- | --- | --- |
-| MoonBit Core | 字节转换、结构解析、规则、密码学验证、分析报告 | 已实现基础包、有界 CBOR 和 P3 协议结构解析；密码学验证与分析报告尚未实现 |
+| MoonBit Core | 字节转换、结构解析、规则、密码学验证、分析报告 | 已实现基础包、有界 CBOR、P3 结构解析及 ES256 参数验证；曲线点/签名验证与分析报告尚未实现 |
 | CLI | 文件与参数输入、调用 Core、报告输出、退出码 | 当前只有 Hello 示例 |
 | Web Dashboard | 输入、协议树、字节视图、展示 Core 结果 | 规划 Vue 3 + TypeScript + Vite |
 | 测试基础设施 | 单元测试、集成测试、正负样本、互操作和回归 | 基础包、CBOR、协议解析黑盒测试及跨包集成测试；设备互操作尚未验证 |
@@ -109,7 +111,7 @@ Array/Map key 按上述三步比较契约处理。CTAP §8 的 Note 说明当前
 
 深度按根到当前节点的路径计数。根 Array/Map 为第 1 层，根标量为 0 层，Map 的 key 和 value 中的容器均计数，兄弟容器各自计算。`Generic` 使用配置的深度预算。`Ctap2Canonical` 同时检查项目预算和 CTAP 四层上限，`max_depth=64` 仍会拒绝第 5 层，较小预算可进一步收紧。
 
-`ParseError` 提供零基 offset、嵌套 context 和可区分的错误种类，覆盖截断、非法头、UTF-8、重复键、编码 profile、资源限制及 unsupported 类型。P3 的 AuthenticatorData 和 AttestationObject 复用此解码器，COSE 密钥语义仍未实现。
+`ParseError` 提供零基 offset、嵌套 context 和可区分的错误种类，覆盖截断、非法头、UTF-8、重复键、编码 profile、资源限制及 unsupported 类型。P3 的 AuthenticatorData 和 AttestationObject 复用此解码器，ES256 参数验证由 P4 显式入口提供；其他算法与密码学有效性未实现。
 
 #### CBOR 实现状态
 
@@ -124,7 +126,7 @@ Array/Map key 按上述三步比较契约处理。CTAP §8 的 Note 说明当前
 | CTAP 四层深度与 tag/indefinite 禁止检测 | `IMPLEMENTED` | array/map 的 key 和 value 均计深度，调用方资源上限可进一步收紧 |
 | IEEE 754 binary16/32/64 结构化结果与值模型 | `NOT_IMPLEMENTED` | 完整 payload 返回 `UnsupportedFloat`，截断返回读取错误 |
 | Generic tag 和 indefinite-length 结构解析 | `NOT_IMPLEMENTED` | 识别相应头后报告 unsupported |
-| CTAP 命令语义、COSE 密钥约束及互操作验证 | `NOT_IMPLEMENTED` | 待后续协议模块和测试 |
+| CTAP 命令语义与设备互操作验证 | `NOT_IMPLEMENTED` | ES256 参数约束另由 P4 入口实现 |
 
 P2 验收基线为 107 个测试，其中 CBOR 为 63 个。`conformance_test.mbt` 包含 W3C 固定版本的 77 字节 ES256 COSE_Key 官方规范示例，以及项目合成的边界和重排变异。P3 首次验收新增 99 个协议解析黑盒测试，全仓库当时为 206 个。审查修正继续增加外层字段拒绝、Array statement 与 §16 官方向量回归；当前数量和四目标实际结果见 `DEVELOPMENT.md`。示例来源与许可记录见 `SPEC_MAPPING.md` 和 `cbor/W3C-NOTICE.md`。
 
@@ -154,11 +156,33 @@ WebAuthn 的外层对象、公钥及扩展均使用现有 `Ctap2Canonical` profi
 
 所有源范围均为 `[start,end)`。每个公开入口的错误 offset 相对于它接收的完整输入视图；AttestationObject 将内嵌错误及重复键等错误附带的位置一起换算到外层。结果中的 `auth_data` 字段范围保持相对于 `auth_data.raw`，其外层基址由 `auth_data_payload_range.start` 提供；`auth_data_range` 则包括 byte string 编码头。调用者可将基址加到公钥或扩展范围，在外层字节中定位它们。
 
+### ES256 Credential Public Key 参数验证（P4）
+
+`validate_es256_credential_public_key(BytesView, limits? : @cbor.Limits)` 返回 `Result[Es256PublicKeyParameters, ParseError]`。入口要求恰好一个完整 canonical CBOR Map，复用现有 decoder 的预算、重复键与尾随检查，不接受来源不明的 `Value`，因此调用方不能通过 Generic 解码结果绕过 canonical 检查。
+
+结果保存检查后的 `kty=2`、`alg=-7`、`crv=1`、原始 x/y 字节、完整 key 编码和各参数值的源范围。x/y 必须各 32 字节且小于 P-256 素数，保留前导零，不补齐或截断。`CurvePointValidation.NotPerformed` 明确表示尚未检查曲线方程；该结果是参数集合，不是可直接信任的密码学公钥。
+
+AT 结果新增 `AttestedCredentialData::validate_es256()` 显式方法。它只查看 P3 已由 canonical decoder 产生的不可变、受预算约束的 Map；不重置或扩大预算。`parse_authenticator_data` 和 `parse_attestation_object` 保持原有结构解析行为，其他算法仍能结构解析，调用语义入口才报告 `UnsupportedAlgorithm`。两层之间没有隐式验证或自动信任提升。
+
+```mermaid
+flowchart LR
+  B[ByteReader] --> C[CBOR canonical decoder]
+  C --> S[P3 WebAuthn structure]
+  C --> V[P4 encoded key validator]
+  S -->|explicit AT method| V
+  V --> P[ES256 parameters: point NotPerformed]
+  P -. separate future validation .-> K[Curve point and signature verification]
+```
+
+独立字节入口的 range/error offset 相对于传入 view；AT 方法的范围相对于 `authData.raw`，`raw` 仅包含 key 编码。位于 AttestationObject 时，调用方加 `auth_data_payload_range.start` 得到外层位置。参数值错误定位到 value 头，禁止/未知 label 定位到 key 头，缺失参数定位到 key Map 起点，context 指明字段或 parameter 下标。
+
+错误复用 `ParseError/ErrorKind`，区分算法、类型、曲线、坐标长度、坐标范围、压缩 y、私钥 d、已知禁止 optional、未知不支持参数以及原始 CBOR 错误。错误不回传私钥字段内容。检查顺序是 CBOR、label 策略、alg、kty、crv、x、y；未知参数拒绝属于当前严格支持范围，不是对全部 COSE 的违规判断。
+
 ## 后续核心模块职责
 
 | 模块 | 计划契约 |
 | --- | --- |
-| COSE | 明确支持的 key type、algorithm、curve，检查组合与字段 |
+| COSE 扩展 | 现有 ES256 参数入口以外的算法、类型和曲线需单独实现与测试 |
 | Cryptography | 选择经核验的 MoonBit 密码学组件，验证原始签名输入 |
 | Security rules | 每条规则记录标准条款、上下文、证据和测试 |
 | Analysis/report | 组合解析、验证和 unsupported 状态，产生可追溯结果 |
@@ -167,4 +191,6 @@ WebAuthn 的外层对象、公钥及扩展均使用现有 `Ctap2Canonical` profi
 
 ## 依赖选择
 
-使用随工具链提供的 `moonbitlang/core`，许可为 Apache-2.0。P2 与 CI 固定版本为 `0.10.20+65efd5b93`，P3 本地检查使用 `0.10.21+f125caab5`，实际验收记录见 `DEVELOPMENT.md`。`moon.mod` 的外部依赖保持为空。Base64URL 测试单独导入本项目 ByteReader 包。CBOR 生产包复用 ByteReader，并导入标准库 `encoding/utf8` 和 `sorted_map`；CBOR 测试单独导入 Base64URL。`webauthn` 复用 ByteReader、CBOR 以及标准库 `encoding/utf8`、`sorted_map` 和仅用于字符串 token 的 `json`，避免依赖不提供本项目重复键与预算契约的完整 JSON 对象解码。密码学、JavaScript FFI 和前端依赖尚未引入。
+使用随工具链提供的 `moonbitlang/core`，许可为 Apache-2.0。P2 与 CI 固定版本为 `0.10.20+65efd5b93`，P3/P4 本地检查使用 `0.10.21+f125caab5`，实际验收记录见 `DEVELOPMENT.md`。`moon.mod` 的外部依赖保持为空。Base64URL 测试单独导入本项目 ByteReader 包。CBOR 生产包复用 ByteReader，并导入标准库 `encoding/utf8` 和 `sorted_map`；CBOR 测试单独导入 Base64URL 和 WebAuthn，以复用原有官方 fixture 进行 P4 验证，生产依赖仍单向。`webauthn` 复用 ByteReader、CBOR 以及标准库 `encoding/utf8`、`sorted_map` 和仅用于字符串 token 的 `json`，避免依赖不提供本项目重复键与预算契约的完整 JSON 对象解码。密码学、JavaScript FFI 和前端依赖尚未引入。
+
+P4 未引入 ECC 依赖，也未实现椭圆曲线算术。候选库安全证据和固定工具链兼容性调查记录见 `DEVELOPMENT.md`。
