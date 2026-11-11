@@ -61,6 +61,10 @@ CI 使用 MoonBit 官方安装脚本，归档版本固定为 `0.10.20+65efd5b93`
 
 CI 配置通过仓库策略要求合并前成功，GitHub Rulesets 和保护规则由用户另行确认设置。
 
+## AI 辅助贡献
+
+AI 辅助完成的贡献须遵循 [AI-Assisted Development Policy](AI_POLICY.md)。贡献者应审查生成的内容、真实运行适用测试并记录结果，由项目维护者负责最终验收。
+
 ## 提交约定
 
 采用 Conventional Commits，每个 commit 聚焦一个可解释、可审阅的逻辑改动。按实际工作内容组织实现、测试、文档与流程改动，提交说明记录原因和影响。
