@@ -2,14 +2,14 @@
 
 ## 已实现范围
 
-Phase 1 提供 Base64URL 编解码和 ByteReader，两个包已补强为 44 个自动测试。Phase 2 新增有界 CBOR 解码、源字节范围、语义重复键检测、可配置资源预算和 CTAP2 canonical 编码 profile。测试覆盖基础 API、错误路径、大小边界和跨包集成。
+Phase 1 提供 Base64URL 编解码和 ByteReader；Phase 2 新增有界 CBOR 解码、源范围、语义重复键检测、可配置预算和 CTAP2 canonical profile；Phase 3 新增 ClientDataJSON、AuthenticatorData 与 AttestationObject 的结构解析。解析、密码学验证、信任判断与认证结论须分别理解。
 
-当前保留原有 95 个黑盒测试，并新增 12 个一致性测试，共 107 个，其中 CBOR 为 63 个。全套测试已在 wasm、wasm-gc、js、native 四个目标实际运行，每个目标均为 107 通过、0 失败。
+P2 历史验收基线为 107 个测试，其中 Base64URL 24 个、ByteReader 20 个、CBOR 63 个，四目标当时均为 107 通过、0 失败。P3 首次验收新增 99 项，总计 206 项且四目标通过。审查修正保留既有覆盖（重写外层未知字段策略测试），新增 Map/Array 与 W3C §16 官方向量回归；当前测试数量及四目标结果见开发记录。远程 CI 状态见对应 PR，详细本地证据见 [开发记录](DEVELOPMENT.md)。
 
 ## Base64URL
 
 - `encode` 默认省略 padding，`padding=true` 可输出完整 padding。
-- `decode` 接受完整规范 padding 和无 padding，WebAuthn 字段的无 padding 限制待后续上下文解析实现。
+- `decode` 接受完整规范 padding 和无 padding。P3 的 ClientDataJSON 仅保留 challenge 字符串，尚未执行其 Base64URL 格式、无 padding 限制或 challenge 匹配。
 - 编码二进制输入和解码输出上限均为 1,048,576 字节，文本输入上限为 1,398,104 UTF-16 code units。这是固定项目策略。
 - `InvalidEncoding` 将非法长度、错误 padding、非零未使用位合并报告。`InvalidCharacter` 单独提供零基 UTF-16 位置。
 - 解码优先检查原文大小，再检查字符、预期输出大小及标准库编码规则。存在多种错误时按此顺序返回。
@@ -48,16 +48,57 @@ Phase 1 提供 Base64URL 编解码和 ByteReader，两个包已补强为 44 个�
 - Byte string 返回原输入视图。Text string 经过严格 UTF-8 校验并保留 BOM。数据保留 CBOR 类型，转换成 JSON 的展示与导出仍待对应层实现。
 - 默认每次调用限输入 1 MiB、单字符串 1 MiB、array 4096 项、map 1024 对、array/map 深度 32、节点 16384。资源参数须非负，深度可配置到硬上限 64。CTAP 四层约束独立执行，CTAP 默认传输消息能力的 1024 字节限制留给传输上下文。
 - 容器深度按根到节点的路径计数，根 Array/Map 为 1，根标量为 0。Map key/value 中的容器都计数，兄弟容器不累计。CTAP 四层检查独立于 `max_depth`，调高项目预算无法绕过，较小预算可以收紧。
-- 当前 profile 检查覆盖 CBOR 编码及本项目支持范围。CTAP 命令语义、WebAuthn 容器字段、COSE 密钥约束和完整协议验证待相应模块实现。
+- 当前 profile 检查覆盖 CBOR 编码及本项目支持范围。P3 增加 WebAuthn 容器字段解析；CTAP 命令语义、COSE 密钥约束和完整协议验证仍未实现。
 - `conformance_test.mbt` 引入 W3C 固定版本的 77 字节 ES256 COSE_Key 官方规范示例及两种项目合成重排变异，覆盖编码结果和源范围。官方认证测试套件及真实设备互操作证据仍待引入，来源分类与许可见 `SPEC_MAPPING.md`、`cbor/W3C-NOTICE.md`。
 
-## 待实现功能
+## P3 协议解析边界
+
+| 能力 | 状态 | 边界 |
+| --- | --- | --- |
+| ClientDataJSON 结构解析 | `IMPLEMENTED` | 必需及可选字段类型、UTF-8、完整 JSON 语法、重复成员、原始字节与顶层 token 范围 |
+| AuthenticatorData 固定结构、AT 和 ED | `IMPLEMENTED` | 严格长度与消费检查、flags 展开、计数器完整 UInt32 范围、公钥与扩展 CBOR map |
+| AttestationObject 结构解析 | `IMPLEMENTED` | 外层限定三个必需字段、text 键、Map/Array statement、内嵌 authData 与源范围 |
+| AttestationObject 协议覆盖整体 | `PARTIAL` | Map/Array 通用结构已支持；逐格式语义尚未验证，CBOR 类型覆盖仍受 P2 限制 |
+| none statement 语法 | `IMPLEMENTED` | `attStmt` 必须为空 map；状态 `NoneStructureChecked` 仅表达结构检查 |
+| 其他 Map/Array statement 格式 | `PARTIAL` | 保留 fmt 与原始结构，状态 `FormatNotValidated`；未实现具体格式验证 |
+| compound 等数组型格式的语义验证 | `NOT_IMPLEMENTED` | 允许 Array 容器并保留 CBOR；未验证其逐元素格式规则、组合策略或密码学内容 |
+| COSE Key 语义验证 | `NOT_IMPLEMENTED` | 公钥只检查 canonical CBOR map，未检查 kty/alg/curve、参数集合或数学有效性 |
+| WebAuthn 安全验证流程 | `NOT_IMPLEMENTED` | 未建立 challenge、origin、RP ID、签名、证书、信任或认证结论 |
+
+### ClientDataJSON
+
+- `raw` 完整保留输入，包括 BOM、空白、字段顺序和转义；后续哈希须使用这些原始字节。解析时按 UTF-8 解码规则跳过一个初始 BOM，不修改 `raw`。
+- `type`、`challenge`、`origin` 必须为字符串，空字符串和未知 operation type 在结构层可通过。`crossOrigin`、`topOrigin` 缺省保留为 `None`，显式值分别要求 Boolean 和 String，不接受 null。
+- 不执行 challenge 的 Base64URL 解码或匹配、不判断 origin 信任、不检查 `crossOrigin` 与 `topOrigin` 的生成关系，因此此结果不表示满足整个 CollectedClientData 语义。
+- 所有对象按解码后的成员名称拒绝重复，包括未知嵌套字段。未知顶层成员保留名称和原始 key/value 范围；未知值只验证语法和预算，不建立可直接访问的完整 JSON 值树。
+- 严格拒绝非法 UTF-8、控制字符、错误转义和未配对 surrogate escape；最后一项是保证 Unicode scalar 字符串的项目策略。嵌套 context 对 JSON 使用成员序号与数组下标。
+
+### AuthenticatorData 与 AttestationObject
+
+- `BS=1 && BE=0` 被拒绝；UP、UV、BE、BS 只是输入声明。RFU 位原样保留而不拒绝是本项目兼容选择，不代表已检查 authenticator 的 RFU 必须为零的生成约束。没有添加 `UV ⇒ UP` 规则。
+- credential ID 长度按 wire 结构允许 0 至 1023。零长度接受只覆盖 §6.5.1 长度字段的结构边界，不表示满足 §4 Credential ID 的生成与安全要求。公钥要求 map，未验证 COSE 算法、曲线、坐标、必需/可选参数或密钥可用性。
+- 扩展必须是 map，标识符按 §9.1 的 text、最多 32 octets、限定可打印 ASCII 检查。未知标识符与任意当前 CBOR 支持类型的值被保留，扩展具体语义尚未验证。
+- 外层 AttestationObject 只允许且必须包含 fmt/authData/attStmt，非 text 键和未知键均拒绝；attStmt 允许 Map 或 Array，Map 内未知字段保留。`fmt` 按 §8.1 的同类标识符规则检查，未检查是否已经登记；none 以外的格式不作格式级验证。内嵌 authData 要求 AT，以遵守 attestation 数据结构要求。
+- 三个 WebAuthn CBOR 位置（外层、公钥、ED）均严格使用 `Ctap2Canonical`。这是对 WebAuthn §2.4 decoder SHOULD 的本项目选择；通用 CBOR `Generic` 仍接受其已支持的非 canonical 输入。当前 profile 对 float、tag 和 indefinite-length 的限制继续适用。[WebAuthn §2.4、§3](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-all-conformance-classes)
+- none 空 statement 的结构通过不代表签名验证、真实性或信任已通过；其他格式的 `FormatNotValidated` 必须保留到调用方结果中。
+
+### 预算、offset 和资源
+
+三个公开入口复用 `@cbor.Limits`，不增加另一套默认预算。输入与单字符串各限 1 MiB、array 4096 项、map 1024 对、节点 16384、深度 32，深度硬上限 64，所有参数须非负。JSON 字符串预算按不含引号的原始编码字节计算，escape 计入；JSON key 和 value 均计节点。未知 JSON 内容也受预算检查。CBOR 的独立四层 canonical 深度上限仍有效；每个内嵌 CBOR 树从自己的根计深度。
+
+AT 公钥、ED 扩展共享同一节点预算，AttestationObject 外层树的节点也先计入，再将剩余预算传给内嵌 authData。内嵌 CBOR 的 `max_values` 错误所报 `limit` 对应该次子解析的剩余预算，可能小于入口配置的总预算。各字符串、数组、map 分别受对应限制；credential ID 的协议上限独立为 1023 字节。字节输入已由调用方提供，入口在解析与额外分配前检查其长度；文件读取、并发总内存和跨请求预算仍属于调用层责任。
+
+所有源范围为半开区间。错误 offset 相对于公开入口收到的输入视图；AttestationObject 将内嵌 authData 错误及 CBOR 重复键等附带 offset 一起换算为外层位置。成功结果中的 `auth_data` 范围仍相对于其 `raw`，加上外层 `auth_data_payload_range.start` 才得到外层位置；`auth_data_range` 包含 CBOR byte string 编码头。不得混用两套成功结果坐标。
+
+边界与畸形输入测试覆盖截断、恶意 UInt64 长度、尾随数据、预算与深度限制；当前没有建立形式化无 panic 证明、模糊测试或性能基准。不存在凭解析成功即可做出的安全承诺。
+
+## 尚未实现的能力
 
 | 功能 | 当前状态 |
 | --- | --- |
-| ClientDataJSON、AuthenticatorData、AttestationObject、COSE | 待实现 |
+| 完整 COSE Key 语义与公钥有效性验证 | `NOT_IMPLEMENTED` |
 | CBOR tags、floats、indefinite-length 支持 | 当前明确 unsupported |
-| challenge、origin、RP ID、flags 等 WebAuthn 安全规则 | 待实现 |
+| challenge、origin、RP ID、ceremony 及计数器风险等安全规则 | `NOT_IMPLEMENTED`；本轮仅加入上述结构约束 |
 | SHA-256、签名、证书、attestation 信任验证 | 待实现 |
 | 文件分析 CLI、报告导出、退出码契约 | 当前入口仅输出 Hello |
 | Vue Dashboard、JS/Wasm 前端集成 | 待实现 |
