@@ -368,3 +368,32 @@ test "synthetic reordered derivatives of W3C COSE example violate CTAP ordering"
     )
   }
 }
+
+///|
+test "W3C 6.5.1.1 existing official key validates ES256 parameters only" {
+  // Reuse the original fixture above verbatim; do not reconstruct its CBOR.
+  let input = official_es256_fixture()
+  let parameters = match @webauthn.validate_es256_credential_public_key(input) {
+    Ok(value) => value
+    Err(error) => fail("official ES256 parameters failed: \{error.to_repr()}")
+  }
+  assert_eq(parameters.raw, input[:])
+  assert_eq(parameters.range, { start: 0, end: 77, })
+  assert_eq(parameters.kty, 2U)
+  assert_eq(parameters.alg, -7)
+  assert_eq(parameters.crv, 1U)
+  assert_eq(parameters.kty_range, { start: 2, end: 3, })
+  assert_eq(parameters.alg_range, { start: 4, end: 5, })
+  assert_eq(parameters.crv_range, { start: 6, end: 7, })
+  assert_eq(parameters.x_range, { start: 8, end: 42, })
+  assert_eq(parameters.y_range, { start: 43, end: 77, })
+  assert_eq(parameters.x.length(), 32)
+  assert_eq(parameters.y.length(), 32)
+  assert_eq(parameters.x, input[10:42])
+  assert_eq(parameters.y, input[45:77])
+  assert_eq(parameters.x[0], b'\x65')
+  assert_eq(parameters.x[31], b'\x1d')
+  assert_eq(parameters.y[0], b'\x1e')
+  assert_eq(parameters.y[31], b'\x9c')
+  assert_eq(parameters.point_validation, @webauthn.NotPerformed)
+}

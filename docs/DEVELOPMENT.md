@@ -203,3 +203,69 @@ git diff --check
 | native | 223 | 223 / 0 | PASS | PASS | Hello |
 
 已完成 AI 静态审查和官方数据独立核对；这不替代维护者人工审查。CI 继续固定 `0.10.20+65efd5b93`，新提交的远程执行证据记录在 PR #3。此次只完成结构修正，不表示已经实现数组型格式语义、COSE Key 或密码学验证。
+
+## Phase 4 ES256 COSE 参数验证（2026-11-12）
+
+开始时工作区干净。通过 fetch 与 GitHub 状态确认 PR #3 已合并，`origin/main` 包含合并提交 `cc6a3001df829710fd80267bb064a05d9553d14b`，P1–P3 基线为 223 项测试。从该远程提交创建 `feat/p4-es256-cose-key`。模块身份与固定 CI 工具链沿用项目配置。
+
+### 实现与接口
+
+新增 `webauthn/cose_key.mbt`，公开 `validate_es256_credential_public_key(BytesView, limits?)`、`AttestedCredentialData::validate_es256()` 和结果 `Es256PublicKeyParameters`。结果包含已检查的 kty/alg/crv、原始 x/y、key 编码、Map/参数源范围与 `CurvePointValidation.NotPerformed`。
+
+独立入口调用既有 CBOR canonical 解码，复用预算、重复键、尾随与错误处理。AT 方法查看已经完成结构解析的不可变 Map，范围与错误相对于 authData.raw，raw 只保存 key 编码。语义调用检查 alg/kty/crv、必需参数、坐标类型/32字节长度/域范围、压缩 y、私钥和可选参数。已知禁止参数、私钥与未知支持范围分别返回错误，错误内容仅包含位置、类型、字段路径和必要长度。对坐标的操作仅为固定宽度字节比较。
+
+检查顺序为 CBOR、label 策略、alg、kty、crv、x、y。未知 integer/text label 使用 UnsupportedCoseParameter，反映本入口的严格支持策略。有效整数 alg 非 -7 使用 UnsupportedAlgorithm，包括 ES384、ES512、RS256、PS256 和 EdDSA。P3 的结构调用仍可获取这些算法的 Map，语义调用由调用方显式选择。
+
+`moon info` 生成的差异仅在 WebAuthn 包，新增上述类型、方法及九个语义错误变体。原有函数签名保持兼容，穷尽匹配 ErrorKind 的调用方需处理新增分支。`cbor/moon.pkg` 只增加 test-only WebAuthn import，以复用原有官方 fixture。生产依赖为 WebAuthn → CBOR → ByteReader。`moon tree` 确认无外部模块依赖。
+
+### 曲线点验证依赖调查
+
+检查了本机 core `0.10.21+f125caab5` 的公开接口，以及 Mooncakes/GitHub 的以下候选。调查只读源码、接口和 CI 配置，未引入第三方实现或依赖。
+
+| 候选 | 版本、许可与维护证据 | 点验证 API 与目标证据 | 需补证据 |
+| --- | --- | --- | --- |
+| moonbitstack/mooncrypt | registry 0.4.15，源码0.4.16，Apache-2.0，存在持续源码更新与多OS CI | PublicKey::of_xy 与 SEC1 导入具备曲线检查，CI check/build/test 使用 --target all | 固定0.10.20兼容性、独立安全审查。of_xy 的字段范围契约仍需单独核查 |
+| mizchi/experimental_crypto | 0.0.2，Apache-2.0，源码含测试与内部审查记录，作者标注实验性及未经独立审计 | PublicKey::from_uncompressed 检查编码、坐标与曲线。主测试矩阵 native/js/wasm-gc，另有 wasm smoke | 固定工具链四目标完整测试、安全审计与生产适用性 |
+| Lfan-ke/mooncat / moonbitstack/mooncat | 旧项目已转向当前服务器模块，Apache-2.0 | 当前密码学依赖 mooncrypt | 作为服务器栈并未提供独立的、已核验的轻量P-256依赖证据 |
+
+mooncrypt 核验源码提交为 `62ff461366f7932506bdd922db209f6949a71c86`，experimental_crypto 为 `d5a3c7005515a02fd9a0260cffaae7b738e69f6b`。mooncrypt 的 of_xy 路径检查坐标宽度和曲线方程，字段值 < p 的检查出现在另一个 SEC1 解码路径，后续集成需要结合调用入口审查。其 CI 安装最新工具链，未提供本项目固定版本的兼容性结果。experimental_crypto 的作者明确记录实验性与独立审计缺失。当前调查不足以确认候选满足本阶段引入密码学依赖的要求，因此曲线点成员检查状态为 NOT_IMPLEMENTED。
+
+来源包括版本化 API、CI 和作者说明。[mooncrypt API](https://github.com/moonbitstack/mooncrypt/blob/62ff461366f7932506bdd922db209f6949a71c86/src/sign/ecdsa/pkg.generated.mbti) · [mooncrypt 构造器](https://github.com/moonbitstack/mooncrypt/blob/62ff461366f7932506bdd922db209f6949a71c86/src/sign/ecdsa/ecdsa.mbt) · [mooncrypt CI](https://github.com/moonbitstack/mooncrypt/blob/62ff461366f7932506bdd922db209f6949a71c86/.github/workflows/ci.yml) · [experimental_crypto 说明](https://github.com/mizchi/experimental_crypto/blob/d5a3c7005515a02fd9a0260cffaae7b738e69f6b/README.md) · [其 P-256 API](https://github.com/mizchi/experimental_crypto/blob/d5a3c7005515a02fd9a0260cffaae7b738e69f6b/p256/pkg.generated.mbti) · [其 CI](https://github.com/mizchi/experimental_crypto/blob/d5a3c7005515a02fd9a0260cffaae7b738e69f6b/.github/workflows/ci.yml)。
+
+### 测试来源与计数
+
+保留 P1–P3 的全部 223 项测试，新增45项。
+
+| 类别 | 新增测试块 |
+| --- | ---: |
+| 合成正向、范围和预算边界 | 7 |
+| 合成负例与不支持算法 | 30 |
+| 合成跨模块兼容及错误定位 | 4 |
+| 复用 W3C 官方向量 | 4 |
+| 合计 | 45 |
+
+官方4项分别复用 §6.5.1.1 的既有77字节示例和 §16.2/16.4/16.5 的既有注册向量。核对 §6.5.1.1 的原始 bytes 与固定规范/任务字节逐字节相同，两个既有官方测试文件的原内容保持一致，仅在末尾追加调用与断言。没有重复复制、移动或重新序列化官方输入。既有 W3C NOTICE 继续适用。合成负例为 `webauthn/cose_key_test.mbt`，覆盖缺参、类型、label、私钥/optional、非canonical、重复键、所有前缀截断、尾随、UInt64边界、坐标p-1/p/p+1/最大值、前导零及输入子视图。30是负例测试块数量，块内部分按多个输入循环。域内不在曲线上的坐标测试核验 NotPerformed 状态。
+
+### 实际本地验收
+
+本机环境为 Darwin arm64，moon/moonrun `0.1.20261111`（8b8d15b），moonc/core `0.10.21+f125caab5`，Node.js `v24.18.0`。完成 `moon info && moon fmt`，检查生成接口差异。`moon fmt --check`、`git diff --check` 均通过。
+
+四目标分别实际执行以下命令。
+
+```sh
+moon check --target TARGET --deny-warn
+moon test --target TARGET --deny-warn
+moon build --target TARGET --deny-warn
+moon run cmd/main --target TARGET --deny-warn
+```
+
+| 目标 | 通过 | 失败 | check | build | run |
+| --- | ---: | ---: | --- | --- | --- |
+| wasm | 268 | 0 | PASS | PASS | Hello |
+| wasm-gc | 268 | 0 | PASS | PASS | Hello |
+| js | 268 | 0 | PASS | PASS | Hello |
+| native | 268 | 0 | PASS | PASS | Hello |
+
+总数268由P1/P2的107项、P3的116项和P4的45项组成。测试阶段曾出现一项集成 context 预期仍使用独立key路径的失败，现按方法的 authData 相对路径修正预期，并完成上述四目标全量复测。代码和标准映射已进行 AI 静态审查，维护者人工验收由 PR 审查完成。
+
+CI 继续使用 Ubuntu24.04、归档 `0.10.20+65efd5b93` 和 Node24。当前 P4 PR 的运行链接、head及结果在 PR 描述中记录。曲线点成员、SHA-256/签名、证书链、attestation信任与完整RP流程的状态均为 NOT_IMPLEMENTED。

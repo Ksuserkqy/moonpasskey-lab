@@ -13,6 +13,8 @@ pub fn parse_authenticator_data(BytesView, limits? : @cbor.Limits) -> Result[Aut
 
 pub fn parse_client_data(BytesView, limits? : @cbor.Limits) -> Result[ClientData, ParseError]
 
+pub fn validate_es256_credential_public_key(BytesView, limits? : @cbor.Limits) -> Result[Es256PublicKeyParameters, ParseError]
+
 // Errors
 
 // Types and methods
@@ -48,6 +50,7 @@ pub struct AttestedCredentialData {
 pub fn AttestedCredentialData::equal(Self, Self) -> Bool
 pub fn AttestedCredentialData::not_equal(Self, Self) -> Bool
 pub fn AttestedCredentialData::to_repr(Self) -> @debug.Repr
+pub fn AttestedCredentialData::validate_es256(Self) -> Result[Es256PublicKeyParameters, ParseError]
 
 #derive(Eq, @debug.Debug)
 pub struct AuthenticatorData {
@@ -106,6 +109,14 @@ pub fn ClientDataMember::not_equal(Self, Self) -> Bool
 pub fn ClientDataMember::to_repr(Self) -> @debug.Repr
 
 #derive(Eq, @debug.Debug)
+pub(all) enum CurvePointValidation {
+  NotPerformed
+}
+pub fn CurvePointValidation::equal(Self, Self) -> Bool
+pub fn CurvePointValidation::not_equal(Self, Self) -> Bool
+pub fn CurvePointValidation::to_repr(Self) -> @debug.Repr
+
+#derive(Eq, @debug.Debug)
 pub(all) enum ErrorKind {
   UnexpectedEnd(expected~ : Int32, remaining~ : Int32)
   InvalidReadLength(Int32)
@@ -122,12 +133,41 @@ pub(all) enum ErrorKind {
   InvalidExtensionKey
   InvalidNoneStatement
   InvalidFormatIdentifier
+  UnsupportedAlgorithm
+  UnsupportedKeyType
+  InvalidCurve
+  InvalidCoordinateLength(expected~ : Int32, actual~ : Int32)
+  InvalidCoordinate
+  CompressedPointNotAllowed
+  PrivateKeyMaterialNotAllowed
+  ForbiddenCoseParameter(label~ : Int32)
+  UnsupportedCoseParameter
   Cbor(@cbor.ErrorKind)
   TrailingData(remaining~ : Int32)
 }
 pub fn ErrorKind::equal(Self, Self) -> Bool
 pub fn ErrorKind::not_equal(Self, Self) -> Bool
 pub fn ErrorKind::to_repr(Self) -> @debug.Repr
+
+#derive(Eq, @debug.Debug)
+pub struct Es256PublicKeyParameters {
+  raw : BytesView
+  range : @cbor.SourceRange
+  kty : UInt32
+  alg : Int32
+  crv : UInt32
+  x : BytesView
+  y : BytesView
+  kty_range : @cbor.SourceRange
+  alg_range : @cbor.SourceRange
+  crv_range : @cbor.SourceRange
+  x_range : @cbor.SourceRange
+  y_range : @cbor.SourceRange
+  point_validation : CurvePointValidation
+}
+pub fn Es256PublicKeyParameters::equal(Self, Self) -> Bool
+pub fn Es256PublicKeyParameters::not_equal(Self, Self) -> Bool
+pub fn Es256PublicKeyParameters::to_repr(Self) -> @debug.Repr
 
 #derive(Eq, @debug.Debug)
 pub(all) struct ParseError {

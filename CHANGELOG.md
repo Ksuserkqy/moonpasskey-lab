@@ -29,6 +29,13 @@
 - 审查修正拒绝额外外层字段，保留 ClientDataJSON 和 statement Map 内未知字段策略；新增 Map/Array 边界回归及 W3C §16.2/16.4/16.5 官方向量，并单独记录来源与许可。
 - 新增协议黑盒及集成回归；实际数量、四目标结果与工具链版本见 [开发记录](docs/DEVELOPMENT.md)。
 
+### Phase 4 ES256 COSE Key 参数验证
+
+- 新增 canonical 字节入口 `validate_es256_credential_public_key` 和显式 `AttestedCredentialData::validate_es256`，返回带原始编码、源范围与 NotPerformed 曲线点状态的 Es256PublicKeyParameters。
+- 检查 EC2/ES256/P-256 组合、五个必需参数、坐标32字节与域范围、压缩表示、私钥和 optional；未知参数明确不支持。
+- P3 结构解析保持兼容，不自动触发 ES256 验证，不将其他算法当成 ES256；错误枚举新增相应分类，穷尽匹配调用方需处理新增变体。
+- 复用已有 W3C 官方 fixture，补充参数负例、坐标边界、范围与跨模块回归。未引入 ECC 依赖；曲线点成员、签名和信任验证仍未实现。
+
 ### 文档与仓库流程
 
 - 记录架构、威胁模型、标准映射、竞品分析、开发过程和当前限制。
@@ -38,6 +45,6 @@
 
 ### 当前实现边界
 
-`Generic` 与 `Ctap2Canonical` 整体状态均为 `PARTIAL`。IEEE 754 binary16/32/64 的结构化结果和值模型为 `NOT_IMPLEMENTED`，完整 payload 返回 `UnsupportedFloat`，截断 payload 返回读取错误。Generic 的 tag 与 indefinite-length 结构解析为 `NOT_IMPLEMENTED`，CTAP profile 对相应禁止编码返回明确错误。CTAP 命令语义、COSE 密钥约束和设备互操作验证待实现。[当前限制](docs/LIMITATIONS.md) · [标准映射](docs/SPEC_MAPPING.md)
+`Generic` 与 `Ctap2Canonical` 整体状态均为 `PARTIAL`。IEEE 754 binary16/32/64 的结构化结果和值模型为 `NOT_IMPLEMENTED`，完整 payload 返回 `UnsupportedFloat`，截断 payload 返回读取错误。Generic 的 tag 与 indefinite-length 结构解析为 `NOT_IMPLEMENTED`，CTAP profile 对相应禁止编码返回明确错误。ES256 参数约束由 P4 提供；CTAP 命令语义、其他算法和设备互操作验证待实现。[当前限制](docs/LIMITATIONS.md) · [标准映射](docs/SPEC_MAPPING.md)
 
-ClientDataJSON、AuthenticatorData 与 AttestationObject（Map/Array attStmt）的通用结构解析已实现；整体协议覆盖为 PARTIAL。compound 等逐格式语义、COSE 语义、字段信任与密码学验证、分析 CLI 和 Web Dashboard 为 NOT_IMPLEMENTED。现有解析结果表达结构与编码检查结果，完整 WebAuthn Level 3 符合性仍待建立验证证据。[架构与后续模块](docs/ARCHITECTURE.md)
+ClientDataJSON、AuthenticatorData 与 AttestationObject（Map/Array attStmt）的通用结构解析已实现；整体协议覆盖为 PARTIAL。compound 等逐格式语义、ES256 以外的 COSE 语义、字段信任与曲线点/密码学验证、分析 CLI 和 Web Dashboard 为 NOT_IMPLEMENTED。现有解析结果表达结构与编码检查结果，完整 WebAuthn Level 3 符合性仍待建立验证证据。[架构与后续模块](docs/ARCHITECTURE.md)

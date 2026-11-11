@@ -351,3 +351,54 @@ test "W3C 16.5 registration official protocol vector" {
 test "W3C 16.5 assertion official protocol vector" {
   w3c_assertion(w3c_vector_top_origin())
 }
+
+///|
+// P4 parameter checks reuse the three unchanged P3 official registrations.
+// Point membership and cryptographic verification remain separate operations.
+fn w3c_es256_parameters(vector : W3cProtocolVector) -> Unit raise {
+  let object = match
+    @webauthn.parse_attestation_object(vector.registration_object) {
+    Ok(value) => value
+    Err(error) =>
+      fail("official registration structure failed: \{error.to_repr()}")
+  }
+  let attested = match object.auth_data.attested {
+    Some(value) => value
+    None => fail("official registration must include AT data")
+  }
+  let parameters = match attested.validate_es256() {
+    Ok(value) => value
+    Err(error) => fail("official ES256 parameters failed: \{error.to_repr()}")
+  }
+  assert_eq(parameters.kty, 2U)
+  assert_eq(parameters.alg, -7)
+  assert_eq(parameters.crv, 1U)
+  assert_eq(parameters.raw, attested.credential_public_key_raw)
+  assert_eq(parameters.raw, object.auth_data.raw[87:164])
+  assert_eq(parameters.range, { start: 87, end: 164, })
+  assert_eq(parameters.kty_range, { start: 89, end: 90, })
+  assert_eq(parameters.alg_range, { start: 91, end: 92, })
+  assert_eq(parameters.crv_range, { start: 93, end: 94, })
+  assert_eq(parameters.x_range, { start: 95, end: 129, })
+  assert_eq(parameters.y_range, { start: 130, end: 164, })
+  assert_eq(parameters.x.length(), 32)
+  assert_eq(parameters.y.length(), 32)
+  assert_eq(parameters.x, object.auth_data.raw[97:129])
+  assert_eq(parameters.y, object.auth_data.raw[132:164])
+  assert_eq(parameters.point_validation, @webauthn.NotPerformed)
+}
+
+///|
+test "W3C 16.2 existing registration validates ES256 parameters only" {
+  w3c_es256_parameters(w3c_vector_none())
+}
+
+///|
+test "W3C 16.4 existing registration validates ES256 parameters only" {
+  w3c_es256_parameters(w3c_vector_cross_origin())
+}
+
+///|
+test "W3C 16.5 existing registration validates ES256 parameters only" {
+  w3c_es256_parameters(w3c_vector_top_origin())
+}
