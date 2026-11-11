@@ -24,8 +24,9 @@
 - 新增原生 MoonBit `webauthn` 包，复用 ByteReader、CBOR 和其资源预算；未引入外部依赖。
 - ClientDataJSON 校验 UTF-8/JSON、字段类型、嵌套重复成员与预算；保留原始字节、BOM 和顶层成员源范围。
 - AuthenticatorData 解析固定字段、AT、ED、UInt32 计数器与源范围；检查 BS ⇒ BE、credential ID 长度及扩展标识符。
-- AttestationObject 校验 Map 和必需字段、fmt 标识符及嵌套 authData；none 要求空 attStmt Map，其他格式返回 FormatNotValidated。
+- AttestationObject 校验外层 Map 的三个必需且唯一字段、fmt 标识符及嵌套 authData；attStmt 接受 Map/Array，none 仍要求空 Map，其他格式返回 FormatNotValidated。
 - WebAuthn CBOR 使用现有 canonical profile；共享外层、公钥及 ED 的节点预算，保留并换算嵌套错误位置。
+- 审查修正拒绝额外外层字段，保留 ClientDataJSON 和 statement Map 内未知字段策略；新增 Map/Array 边界回归及 W3C §16.2/16.4/16.5 官方向量，并单独记录来源与许可。
 - 新增协议黑盒及集成回归；实际数量、四目标结果与工具链版本见 [开发记录](docs/DEVELOPMENT.md)。
 
 ### 文档与仓库流程
@@ -39,4 +40,4 @@
 
 `Generic` 与 `Ctap2Canonical` 整体状态均为 `PARTIAL`。IEEE 754 binary16/32/64 的结构化结果和值模型为 `NOT_IMPLEMENTED`，完整 payload 返回 `UnsupportedFloat`，截断 payload 返回读取错误。Generic 的 tag 与 indefinite-length 结构解析为 `NOT_IMPLEMENTED`，CTAP profile 对相应禁止编码返回明确错误。CTAP 命令语义、COSE 密钥约束和设备互操作验证待实现。[当前限制](docs/LIMITATIONS.md) · [标准映射](docs/SPEC_MAPPING.md)
 
-ClientDataJSON、AuthenticatorData 与 Map 形式 AttestationObject 的结构解析已实现；整体协议覆盖为 PARTIAL。数组型 compound attStmt、COSE 语义、字段信任与密码学验证、分析 CLI 和 Web Dashboard 为 NOT_IMPLEMENTED。现有解析结果表达结构与编码检查结果，完整 WebAuthn Level 3 符合性仍待建立验证证据。[架构与后续模块](docs/ARCHITECTURE.md)
+ClientDataJSON、AuthenticatorData 与 AttestationObject（Map/Array attStmt）的通用结构解析已实现；整体协议覆盖为 PARTIAL。compound 等逐格式语义、COSE 语义、字段信任与密码学验证、分析 CLI 和 Web Dashboard 为 NOT_IMPLEMENTED。现有解析结果表达结构与编码检查结果，完整 WebAuthn Level 3 符合性仍待建立验证证据。[架构与后续模块](docs/ARCHITECTURE.md)

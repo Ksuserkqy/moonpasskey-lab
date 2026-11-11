@@ -2,9 +2,9 @@
 
 ## 已实现范围
 
-Phase 1 提供 Base64URL 编解码和 ByteReader；Phase 2 新增有界 CBOR 解码、源范围、语义重复键检测、可配置预算和 CTAP2 canonical profile；Phase 3 新增 ClientDataJSON、AuthenticatorData 与 map 形式 AttestationObject 的结构解析。解析、密码学验证、信任判断与认证结论须分别理解。
+Phase 1 提供 Base64URL 编解码和 ByteReader；Phase 2 新增有界 CBOR 解码、源范围、语义重复键检测、可配置预算和 CTAP2 canonical profile；Phase 3 新增 ClientDataJSON、AuthenticatorData 与 AttestationObject 的结构解析。解析、密码学验证、信任判断与认证结论须分别理解。
 
-P2 历史验收基线为 107 个测试，其中 Base64URL 24 个、ByteReader 20 个、CBOR 63 个，四目标当时均为 107 通过、0 失败。P3 新增 99 个协议解析、资源边界和嵌套错误测试（34 个 ClientDataJSON、42 个 AuthenticatorData、23 个 AttestationObject），总数为 206。本轮本地 wasm、wasm-gc、js、native 各 206 通过、0 失败，四目标带 `--deny-warn` 的检查、测试、构建与入口运行均通过；格式和接口检查通过。远程 CI 状态见对应 PR，详细本地证据见 [开发记录](DEVELOPMENT.md)。
+P2 历史验收基线为 107 个测试，其中 Base64URL 24 个、ByteReader 20 个、CBOR 63 个，四目标当时均为 107 通过、0 失败。P3 首次验收新增 99 项，总计 206 项且四目标通过。审查修正保留既有覆盖（重写外层未知字段策略测试），新增 Map/Array 与 W3C §16 官方向量回归；当前测试数量及四目标结果见开发记录。远程 CI 状态见对应 PR，详细本地证据见 [开发记录](DEVELOPMENT.md)。
 
 ## Base64URL
 
@@ -57,11 +57,11 @@ P2 历史验收基线为 107 个测试，其中 Base64URL 24 个、ByteReader 20
 | --- | --- | --- |
 | ClientDataJSON 结构解析 | `IMPLEMENTED` | 必需及可选字段类型、UTF-8、完整 JSON 语法、重复成员、原始字节与顶层 token 范围 |
 | AuthenticatorData 固定结构、AT 和 ED | `IMPLEMENTED` | 严格长度与消费检查、flags 展开、计数器完整 UInt32 范围、公钥与扩展 CBOR map |
-| map 形式 AttestationObject 结构解析 | `IMPLEMENTED` | 必需字段、text 键、字段类型、内嵌 authData 与源范围 |
-| AttestationObject 协议覆盖整体 | `PARTIAL` | 本轮仅支持 map statement；CBOR 支持范围仍受 P2 限制 |
+| AttestationObject 结构解析 | `IMPLEMENTED` | 外层限定三个必需字段、text 键、Map/Array statement、内嵌 authData 与源范围 |
+| AttestationObject 协议覆盖整体 | `PARTIAL` | Map/Array 通用结构已支持；逐格式语义尚未验证，CBOR 类型覆盖仍受 P2 限制 |
 | none statement 语法 | `IMPLEMENTED` | `attStmt` 必须为空 map；状态 `NoneStructureChecked` 仅表达结构检查 |
-| 其他 map statement 格式 | `PARTIAL` | 保留 fmt 与原始结构，状态 `FormatNotValidated`；未实现具体格式验证 |
-| array statement、compound attestation | `NOT_IMPLEMENTED` | WebAuthn §6.5.4 允许 array；本轮按请求的 map 范围拒绝该类型 |
+| 其他 Map/Array statement 格式 | `PARTIAL` | 保留 fmt 与原始结构，状态 `FormatNotValidated`；未实现具体格式验证 |
+| compound 等数组型格式的语义验证 | `NOT_IMPLEMENTED` | 允许 Array 容器并保留 CBOR；未验证其逐元素格式规则、组合策略或密码学内容 |
 | COSE Key 语义验证 | `NOT_IMPLEMENTED` | 公钥只检查 canonical CBOR map，未检查 kty/alg/curve、参数集合或数学有效性 |
 | WebAuthn 安全验证流程 | `NOT_IMPLEMENTED` | 未建立 challenge、origin、RP ID、签名、证书、信任或认证结论 |
 
@@ -78,7 +78,7 @@ P2 历史验收基线为 107 个测试，其中 Base64URL 24 个、ByteReader 20
 - `BS=1 && BE=0` 被拒绝；UP、UV、BE、BS 只是输入声明。RFU 位原样保留而不拒绝是本项目兼容选择，不代表已检查 authenticator 的 RFU 必须为零的生成约束。没有添加 `UV ⇒ UP` 规则。
 - credential ID 长度按 wire 结构允许 0 至 1023。零长度接受只覆盖 §6.5.1 长度字段的结构边界，不表示满足 §4 Credential ID 的生成与安全要求。公钥要求 map，未验证 COSE 算法、曲线、坐标、必需/可选参数或密钥可用性。
 - 扩展必须是 map，标识符按 §9.1 的 text、最多 32 octets、限定可打印 ASCII 检查。未知标识符与任意当前 CBOR 支持类型的值被保留，扩展具体语义尚未验证。
-- 外层 AttestationObject 要求 text 键和 map statement，保留未知顶层 text 字段。`fmt` 按 §8.1 的同类标识符规则检查，未检查是否已经登记；none 以外的格式不作格式级验证。内嵌 authData 要求 AT，以遵守 attestation 数据结构要求。
+- 外层 AttestationObject 只允许且必须包含 fmt/authData/attStmt，非 text 键和未知键均拒绝；attStmt 允许 Map 或 Array，Map 内未知字段保留。`fmt` 按 §8.1 的同类标识符规则检查，未检查是否已经登记；none 以外的格式不作格式级验证。内嵌 authData 要求 AT，以遵守 attestation 数据结构要求。
 - 三个 WebAuthn CBOR 位置（外层、公钥、ED）均严格使用 `Ctap2Canonical`。这是对 WebAuthn §2.4 decoder SHOULD 的本项目选择；通用 CBOR `Generic` 仍接受其已支持的非 canonical 输入。当前 profile 对 float、tag 和 indefinite-length 的限制继续适用。[WebAuthn §2.4、§3](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-all-conformance-classes)
 - none 空 statement 的结构通过不代表签名验证、真实性或信任已通过；其他格式的 `FormatNotValidated` 必须保留到调用方结果中。
 

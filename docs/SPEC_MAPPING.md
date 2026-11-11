@@ -84,9 +84,9 @@ P3 新增 `webauthn` 包。以下 `IMPLEMENTED` 指相应结构检查已实现�
 | WebAuthn §6.5.1 | `IMPLEMENTED`：AAGUID、16-bit credentialIdLength ≤1023、精确 credentialId 与公钥 CBOR Map 范围；`PARTIAL`：COSE_Key 只做 Map 与编码检查 | 长度 0/1023/1024/65535、公钥截断、非 Map、源范围 |
 | WebAuthn §6.1、§9.1 | `IMPLEMENTED`：ED 为 Map，键符合扩展标识符规则，保留未知扩展值；`NOT_IMPLEMENTED`：逐扩展语义 | ED-only、未知值、非法标识符、CBOR 截断 |
 | WebAuthn §2.4、§3、§6.5.1；CTAP 2.3 PS §8 | `IMPLEMENTED`：在现有 CBOR 支持类型上执行 canonical 与重复键检查；完整 CBOR 类型覆盖为 `PARTIAL` | outer/key/ED 非最短头、错误键序、重复键、CTAP 四层上限 |
-| WebAuthn §6.1、§6.5.4、§8.1 | `IMPLEMENTED`：Map 形式外层、必需字段和类型、fmt 标识符、authData 内 AT、完整消费；`PARTIAL`：仅 Map attStmt | 缺字段、重复、错误类型、外层尾随、嵌套失败与位置换算 |
+| WebAuthn §6.1、§6.5.4、§8.1 | `IMPLEMENTED`：外层仅三个必需字段和类型、Map/Array attStmt、fmt 标识符、authData 内 AT、完整消费 | 缺字段、额外字段拒绝、Map/Array、重复、错误类型、尾随、嵌套位置换算 |
 | WebAuthn §8.7 | `IMPLEMENTED`：none attStmt 必须为空 Map，返回 NoneStructureChecked；未建立 attestation 信任结论 | 空 Map 成功、非空 Map 拒绝 |
-| WebAuthn §8.2–8.6、§8.8–8.9、RFC 9052 §7、RFC 9053 | `PARTIAL`：其他 fmt 保留 Map 并返回 FormatNotValidated；`NOT_IMPLEMENTED`：数组型 compound、完整 COSE/格式/密码学验证 | 未知 fmt 保留、数组明确报类型不支持范围 |
+| WebAuthn §8.2–8.6、§8.8–8.9、RFC 9052 §7、RFC 9053 | `PARTIAL`：其他 fmt 保留 Map/Array 并返回 FormatNotValidated；`NOT_IMPLEMENTED`：compound 等逐格式语义、完整 COSE/密码学验证 | 未知 fmt 和 Array 原值/范围保留、none 仍拒绝 Array |
 | 项目预算和来源位置契约 | `IMPLEMENTED`：外层 Map、公钥和 ED 共享节点预算；错误含字段路径和相对公共入口的 byte offset | 聚合节点边界、主/次 offset 换算、子视图 |
 
 固定依据：[WebAuthn Level 3，2026-08-25 REC](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/) · [CTAP 2.3，2026-02-26 PS §8](https://fidoalliance.org/specs/fido-v2.3-ps-20260226/fido-client-to-authenticator-protocol-v2.3-ps-20260226.html#message-encoding) · [RFC 8259](https://www.rfc-editor.org/rfc/rfc8259.html)。未引入 CTAP 测试数据或外部 JSON 依赖。
@@ -96,7 +96,7 @@ P3 新增 `webauthn` 包。以下 `IMPLEMENTED` 指相应结构检查已实现�
 - `crossOrigin` 和 `topOrigin` 均保留可选性；本层只校验类型，未验证 topOrigin 与 crossOrigin 的关系或任何 origin 信任。type 值、challenge 编码/匹配亦未验证。
 - RFU 位原样保留。这是本解析器的容忍策略，§6.1 对认证器的生成要求仍是置零；当前不声称检查了该生成要求。UP/UV 仅表示输入声明。
 - credential ID 长度零在结构层可表示；接受该编码不表示满足 §4 的 Credential ID 生成形式和安全要求。公钥可以是空 Map，尚不检查 kty/alg 等 COSE 必需参数。
-- §6.5.4 的 attStmtTemplate 在此固定 Level 3 版本允许 Map 或数组。本任务约定仅支持 Map，因此 compound 数组明确为 `NOT_IMPLEMENTED`；不能声称完整 AttestationObject 覆盖。
+- §6.5.4 的 attStmtTemplate 限定外层三个字段，attStmt 允许 Map 或 Array。审查修正已实现相应容器结构并拒绝未知外层字段；ClientDataJSON 未知字段和 statement Map 内未知字段策略保持原样。compound 的逐元素规则与组合验证仍为 `NOT_IMPLEMENTED`。
 - fmt 与扩展键按 §§8.1/9.1 检查最长 32 个 ASCII 字节，字符为 VCHAR 且排除双引号和反斜线；规范未给出非空下限，本层不增加该限制。
 - 所有错误 offset 相对于调用入口的 BytesView；AttestationObject 内错误及重复/排序错误中的附带位置均换算到外层。成功结果中的 AuthenticatorData/CBOR 子范围仍相对于 authData.raw，通过 auth_data_payload_range 关联到外层。
 
@@ -117,3 +117,13 @@ Phase 2 原有 `cbor/cbor_test.mbt` 按上述条款构造合成字节样本，�
 同文件的两种整对重排样本由官方示例派生，来源类别为项目合成变异。它们保留坐标与 label 字节，用于 Generic 接受任意 map 顺序及 CTAP 拒绝错误排序的回归。其余新增边界样本亦为项目合成。本轮新增 12 个测试，保留原有 95 个，全仓库共 107 个，其中 CBOR 为 63 个。官方 CTAP/WebAuthn 认证测试套件和真实设备互操作证据仍待引入。
 
 P3 的 `webauthn/clientdata_test.mbt`、`authdata_test.mbt` 与 `attestation_test.mbt` 均为项目合成测试，包括手工编码、测试内构造器、截断和定向畸形变异。它们与上文 `cbor/conformance_test.mbt` 的 W3C 官方示例分开存放。没有把合成 credential key 或 none 对象标成官方向量，也未复制来源不明的数据。合成数据随本仓库采用 Apache-2.0；既有 W3C 示例继续保留原许可声明。P3 新增测试数与四目标实际验收结果见 [DEVELOPMENT.md](DEVELOPMENT.md)。
+
+### P3 审查修正：§16 官方协议向量
+
+`webauthn/w3c_vectors_test.mbt` 单独保存 W3C WebAuthn Level 3 2026-08-25 Recommendation 的官方测试向量：
+
+- [§16.2 ES256 Credential with No Attestation](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-test-vectors-none-es256)
+- [§16.4 crossOrigin=true](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-test-vectors-none-es256-crossOrigin)
+- [§16.5 topOrigin](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-test-vectors-none-es256-topOrigin)
+
+只提取注册的 clientDataJSON/attestationObject 和认证的 clientDataJSON/authenticatorData 字节，保持规范 hex 所表示的原文，不从解析结果重新序列化。未引入私钥、签名、证书或生成算法。覆盖原始 JSON 字节、create/get 字段、crossOrigin/topOrigin、none 对象、嵌入和独立 authData、公钥 Map 以及来源范围；没有执行密码学验证。这些数据属于官方向量，区别于既有三个合成测试文件；版权与 W3C Software and Document License 2023 声明见 `webauthn/W3C-NOTICE.md`。具体计数和实际执行结果见 `DEVELOPMENT.md`。

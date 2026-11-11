@@ -110,7 +110,7 @@ P1 和 P2 提交分别从暂存区独立导出验证，P1 为 44 通过，P2 为
 
 整合期间再次检测环境时，本机工具链已变为 moon / moonrun `0.1.20261111`（`8b8d15b`）、moonc / core `0.10.21+f125caab5`。本次任务未执行安装或升级操作。A/B 导出验证使用前述 `0.10.20+65efd5b93` 工具链，最后一轮工作区复测使用 `0.10.21+f125caab5`，四目标各 107 通过，且分别通过带 `--deny-warn` 的 check、build、入口运行。生成接口和代码保持一致。CI 固定原验收版本，并以远程执行日志确认实际安装结果。
 
-## P3 WebAuthn 协议解析验收
+## P3 WebAuthn 协议解析首次验收（审查修正前）
 
 P3 从已同步的 `origin/main`（`b8ec3a6087d2e39c3725c3d0bb3a82de56e8b242`）建立 `feat/p3-webauthn-parser`；已确认 P1/P2 与公开规范 PR 均已合并。模块身份、原有包、默认目标与 CI 固定版本保持一致。
 
@@ -142,7 +142,7 @@ ByteReader 负责边界读取，CBOR 返回消费长度与原始范围；解析�
 | Node.js | v24.18.0 |
 | native C 编译器 | Apple clang 21.0.0 |
 
-保留基线 107 项，新增 99 项黑盒测试：ClientDataJSON 34、AuthenticatorData 42、AttestationObject/集成 23，总计 206 项。所有 P3 样本都是项目合成，既有官方 W3C 示例继续单独存放并保留 NOTICE。
+保留基线 107 项，新增 99 项黑盒测试：ClientDataJSON 34、AuthenticatorData 42、AttestationObject/集成 23，总计 206 项。首次验收的三个 P3 测试文件均为项目合成，既有官方 W3C 示例当时位于 CBOR 测试中并单独保留 NOTICE；审查修正新增的 §16 官方向量见下节。
 
 按 `.github/workflows/ci.yml` 的实际步骤对每个目标运行以下命令（用目标名替换 TARGET）：
 
@@ -164,3 +164,42 @@ git diff --check
 | native | 99 / 206 | 206 / 0 | PASS | PASS | Hello |
 
 `moon info && moon fmt`、`moon fmt --check`、`git diff --check` 均通过。所有 check/test/build/run 使用 `--deny-warn`，未隐藏编译警告。CLI 仍为既有 Hello 入口，P3 未添加分析 CLI 或前端。固定旧版本工具链的 Ubuntu CI 证据以当前 P3 PR 的实际 Actions 为准，不以本机结果代替。
+
+
+## P3 Review Follow-up（2026-11-12）
+
+本次从 `3bba475cf3a50cd1bbd0e236b495ec4cafdfa43e` 在原 `feat/p3-webauthn-parser` 分支追加修正，PR 仍为 #3，目标 `main`。未修改默认分支、工具链、CI 配置或依赖。
+
+### 标准符合性修正
+
+- 按 WebAuthn §6.5.4 的 CDDL，外层 Map 只允许且必须包含 fmt/authData/attStmt；未知 text 键返回 `UnexpectedField(String)`，offset 是键编码的起点。非 text 键、重复键、必需字段与类型检查继续保留。
+- attStmt 允许 text-keyed Map 或 Array，原始 CBOR Value 与范围保持不变。none 仍必须为空 Map；其他格式继续返回 `FormatNotValidated`。compound 等数组型格式的逐元素规则、组合与密码学验证未实现。
+- ClientDataJSON 未知字段兼容性及 statement Map 内未知字段保留策略保持原样。
+- `moon info` 的公开接口差异仅为新增 `ErrorKind.UnexpectedField(String)`；函数签名、结构模型和 StatementStatus 未改变。对错误枚举做穷尽匹配的调用方需处理新分支。
+
+### 官方向量与测试保留
+
+新增 `webauthn/w3c_vectors_test.mbt` 的 6 项集成测试，分别覆盖固定版 W3C 2026-08-25 Recommendation §16.2、§16.4、§16.5 的注册与认证字节。只复制解析所需的 clientDataJSON、attestationObject、authenticatorData；不复制私钥、签名或证书。12 段输入由固定 HTML 提取，并独立与测试源中的拼接 hex 比较，全部一致，JSON 未重建或重新序列化。
+
+| 来源 | 注册 JSON / object | 认证 JSON / authData |
+| --- | --- | --- |
+| §16.2 none ES256 | 255 / 194 bytes | 132 / 37 bytes |
+| §16.4 crossOrigin=true | 254 / 194 bytes | 251 / 37 bytes |
+| §16.5 topOrigin | 168 / 194 bytes | 285 / 37 bytes |
+
+三个注册对象都包含 164-byte authData、32-byte credential ID 和 77-byte 公钥 CBOR Map。测试检查原始 JSON、可选字段、外层对象、嵌入和独立 authData、AT、公钥五组 label/value 与范围。来源、固定版本及完整 W3C 许可见 `webauthn/W3C-NOTICE.md`；官方数据与既有合成文件分开保存。
+
+原有 206 项覆盖保留：按要求将未知外层字段接受测试改为拒绝测试，并调整与新数组支持相关的错误类型输入。新增 11 项合成回归和 6 项官方向量测试，净增 17 项，全仓库共 223 项（Base64URL 24、ByteReader 20、CBOR 63、ClientDataJSON 34、AuthenticatorData 42、AttestationObject 34、官方向量 6）。未删除 P1/P2 测试或降低有效断言。
+
+### 实际验收结果
+
+本机仍为 Darwin arm64，moon/moonrun `0.1.20261111`、moonc/core `0.10.21+f125caab5`、Node.js `v24.18.0`。运行 `moon info && moon fmt`、`moon fmt --check` 与 `git diff --check` 均通过，并审查了上述唯一 `.mbti` 差异。对每个目标实际运行 `moon check/test/build --target TARGET --deny-warn` 和 `moon run cmd/main --target TARGET --deny-warn`：
+
+| 目标 | 总数 | 通过 / 失败 | check | build | run |
+| --- | --- | --- | --- | --- | --- |
+| wasm | 223 | 223 / 0 | PASS | PASS | Hello |
+| wasm-gc | 223 | 223 / 0 | PASS | PASS | Hello |
+| js | 223 | 223 / 0 | PASS | PASS | Hello |
+| native | 223 | 223 / 0 | PASS | PASS | Hello |
+
+已完成 AI 静态审查和官方数据独立核对；这不替代维护者人工审查。CI 继续固定 `0.10.20+65efd5b93`，新提交的远程执行证据记录在 PR #3。此次只完成结构修正，不表示已经实现数组型格式语义、COSE Key 或密码学验证。

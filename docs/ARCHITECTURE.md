@@ -2,7 +2,7 @@
 
 ## 阶段状态
 
-2026-11-11，Phase 1 已实现 MoonBit `base64url` 与 `bytereader` 包，Phase 2 新增 `cbor` 包，Phase 3 新增 `webauthn` 包，提供 ClientDataJSON、AuthenticatorData 和 map 形式 AttestationObject 的结构解析。模块身份保持 `ksuserkqy/moonpasskey_lab@0.1.0`，默认目标为 `wasm`。`cmd/main` 当前运行后输出 `Hello`，协议分析 CLI 尚未实现。结构解析成功不代表认证成功。
+截至 2026-11-12，Phase 1 已实现 MoonBit `base64url` 与 `bytereader` 包，Phase 2 新增 `cbor` 包，Phase 3 新增 `webauthn` 包，提供 ClientDataJSON、AuthenticatorData 和 AttestationObject 的结构解析（attStmt 支持 Map/Array）。模块身份保持 `ksuserkqy/moonpasskey_lab@0.1.0`，默认目标为 `wasm`。`cmd/main` 当前运行后输出 `Hello`，协议分析 CLI 尚未实现。结构解析成功不代表认证成功。
 
 ## 实际目录
 
@@ -45,6 +45,8 @@ moonpasskey-lab/
 │   ├── clientdata_test.mbt
 │   ├── authdata_test.mbt
 │   ├── attestation_test.mbt
+│   ├── w3c_vectors_test.mbt
+│   ├── W3C-NOTICE.md
 │   └── pkg.generated.mbti
 ├── cmd/main/
 │   ├── moon.pkg
@@ -124,7 +126,7 @@ Array/Map key 按上述三步比较契约处理。CTAP §8 的 Note 说明当前
 | Generic tag 和 indefinite-length 结构解析 | `NOT_IMPLEMENTED` | 识别相应头后报告 unsupported |
 | CTAP 命令语义、COSE 密钥约束及互操作验证 | `NOT_IMPLEMENTED` | 待后续协议模块和测试 |
 
-P2 验收基线为 107 个测试，其中 CBOR 为 63 个。`conformance_test.mbt` 包含 W3C 固定版本的 77 字节 ES256 COSE_Key 官方规范示例，以及项目合成的边界和重排变异。P3 新增 99 个协议解析黑盒测试（ClientDataJSON 34、AuthenticatorData 42、AttestationObject 23），全仓库共 206 个，本地四目标各 206 通过、0 失败；完整执行记录见 `DEVELOPMENT.md`。示例来源与许可记录见 `SPEC_MAPPING.md` 和 `cbor/W3C-NOTICE.md`。
+P2 验收基线为 107 个测试，其中 CBOR 为 63 个。`conformance_test.mbt` 包含 W3C 固定版本的 77 字节 ES256 COSE_Key 官方规范示例，以及项目合成的边界和重排变异。P3 首次验收新增 99 个协议解析黑盒测试，全仓库当时为 206 个。审查修正继续增加外层字段拒绝、Array statement 与 §16 官方向量回归；当前数量和四目标实际结果见 `DEVELOPMENT.md`。示例来源与许可记录见 `SPEC_MAPPING.md` 和 `cbor/W3C-NOTICE.md`。
 
 ### WebAuthn 协议结构解析
 
@@ -134,7 +136,7 @@ P2 验收基线为 107 个测试，其中 CBOR 为 63 个。`conformance_test.mb
 | --- | --- | --- |
 | `parse_client_data` | `ClientData` | UTF-8、JSON 语法、顶层对象、必需字段与可选字段类型、重复成员、原始字节和顶层成员范围 |
 | `parse_authenticator_data` | `AuthenticatorData` | 固定 37 字节结构、flags、UInt32 计数器、AT、ED、CBOR 完整消费和原始范围 |
-| `parse_attestation_object` | `AttestationObject` | canonical CBOR map、必需字段、字段类型、内嵌 authData、none 空 statement 和状态标记 |
+| `parse_attestation_object` | `AttestationObject` | canonical CBOR 外层 Map、限定三个字段、Map/Array statement、内嵌 authData、none 空 Map 和状态标记 |
 
 ClientDataJSON 由有界字节扫描器检查 JSON 容器、数字语法、字符串边界和预算，单个字符串 token 才交给标准库 `core/json` 解码。所有对象按解码后的成员名拒绝重复，包括转义等价名称和未知字段中的嵌套对象；未知顶层成员保留名称及 key/value token 范围，不创建完整的未知 JSON 对象树。输入首先经过严格 UTF-8 校验，解析时跳过一个初始 UTF-8 BOM，`ClientData.raw` 仍完整保留它。未配对的 Unicode surrogate escape 按项目策略拒绝。
 
@@ -142,7 +144,7 @@ ClientDataJSON 由有界字节扫描器检查 JSON 容器、数字语法、字�
 
 AuthenticatorData 复用 ByteReader 读取 `rp_id_hash`、flags 与大端 `sign_count`。flags 保留原始字节、UP/UV/BE/BS/AT/ED 和 RFU 位，拒绝 BS 为真而 BE 为假的组合。保留 RFU 而不拒绝是本项目结构解析的兼容策略；它不声明输入满足 authenticator 生成时 RFU 必须为零的要求，也不将标志视为经过验证的安全属性。AT 读取 AAGUID、两字节 credential ID 长度、ID 和 CBOR map 公钥；长度上限为 1023，零长度只在结构层接受。ED 要求 map，键按扩展标识符的最多 32 octets、限定可打印 ASCII 规则检查，值保留原始 CBOR。[WebAuthn §6.1、§6.5.1、§9.1](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-authenticator-data)
 
-AttestationObject 保留完整 CBOR 树及原始字节，要求 text map 键、`fmt` text、`authData` byte string 和 text-keyed `attStmt` map，未知顶层 text 字段保留在树中。`fmt` 使用 §8.1 标识符字符与长度规则。内嵌 authData 必须包含 AT。`fmt="none"` 要求空 map，结果为 `NoneStructureChecked`；其他格式保留 statement，结果为 `FormatNotValidated`。本轮按请求支持 map statement，规范允许的 array statement（包括 compound）尚未实现，因此整个 AttestationObject 协议覆盖仍为 `PARTIAL`。[WebAuthn §6.5.4、§8.1、§8.7](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-generating-an-attestation-object)
+AttestationObject 保留完整 CBOR 树及原始字节。外层 Map 只允许且必须包含 `fmt`、`authData`、`attStmt`：非 text 键与未知字段均拒绝，未知字段错误定位到键的编码起点。`fmt` 必须为符合 §8.1 标识符规则的 text，`authData` 必须为 byte string 且解析结果包含 AT。`attStmt` 接受 text-keyed Map 或 Array，并保留原始 CBOR Value 及范围；statement Map 内的未知字段继续保留。`fmt="none"` 仍只接受空 Map，状态为 `NoneStructureChecked`；其他格式的 Map/Array 均为 `FormatNotValidated`。Array 的通用结构支持不表示完成了 compound 或其他格式的语义与签名验证，整体协议覆盖仍为 `PARTIAL`。ClientDataJSON 的未知字段兼容策略不受此处外层限制影响。[WebAuthn §6.5.4、§8.1、§8.7](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-generating-an-attestation-object)
 
 #### 编码、预算与位置契约
 
