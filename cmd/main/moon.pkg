@@ -1,0 +1,5 @@
+// import {
+//   "ksuserkqy/moonpasskey_lab" @lib,
+// }
+
+pkgtype(kind: "executable")
