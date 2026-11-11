@@ -370,4 +370,8 @@ moon run cmd/main --target TARGET --deny-warn
 
 完成 AI 静态代码审查和向量字节独立核对。两套 Wycheproof 的112/113个公钥及262/484组 tcId/message/signature 与各自固定源文件逐项完全一致。NIST 15例验签结果、3个 W3C 原始 DER 签名另由 OpenSSL 复核。维护者人工验收仍待 PR 审查。
 
-PR #5 的实现提交 `4bd44211cc6a64b0907531d50a8791a4b458d558` 首轮 CI 在四个目标的 `moon info` 前置依赖解析处失败。全新 runner 尚未初始化 Mooncakes registry，无法找到固定 MoonCrypt 元数据，测试步骤未执行。工作流已增加 `moon update` 获取固定依赖元数据，修正提交的四目标结果将在执行完成后补入。[首次执行日志](https://github.com/Ksuserkqy/moonpasskey-lab/actions/runs/43122248330)
+PR #5 的实现提交 `4bd44211cc6a64b0907531d50a8791a4b458d558` 首轮 CI 在四个目标的 `moon info` 前置依赖解析处失败。全新 runner 尚未初始化 Mooncakes registry，无法找到固定 MoonCrypt 元数据，测试步骤未执行。工作流增加 `moon update` 获取固定依赖元数据。[首次执行日志](https://github.com/Ksuserkqy/moonpasskey-lab/actions/runs/43122248330)
+
+修正提交 `811007bb3d9d15ad30a588fdaa9326211549d6db` 的四目标 CI 全部成功。逐个检查 job 结果和日志，确认 Ubuntu24.04、moon/moonrun `0.1.20261104`、moonc/core `0.10.20+65efd5b93`、Node `v24.22.2`。wasm、wasm-gc、js、native 每个目标均为329项通过、0失败，格式、registry 初始化、接口比对、check/test/build/run 全部成功。[四目标 Actions 43122438670](https://github.com/Ksuserkqy/moonpasskey-lab/actions/runs/43122438670)
+
+后续文档收尾提交的当前 CI 状态见 PR #5。P5 功能已完成上述验收，PR 保持 OPEN，维护者人工审查待进行。[Phase 5 PR](https://github.com/Ksuserkqy/moonpasskey-lab/pull/5)
