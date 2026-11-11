@@ -11,6 +11,7 @@ pub(all) enum ErrorKind {
   InvalidJson
   DuplicateMember(name~ : String, first_offset~ : Int32)
   MissingField(String)
+  UnexpectedField(String)
   WrongType(expected~ : String)
   InvalidFlags(Byte)
   InvalidCredentialIdLength(UInt32)

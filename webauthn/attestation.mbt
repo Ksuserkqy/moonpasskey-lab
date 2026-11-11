@@ -65,9 +65,9 @@ fn rebase_auth_error(error : ParseError, base : Int32) -> ParseError {
 }
 
 ///|
-/// Parse the requested map-based attestation formats. Array statements (e.g.
-/// compound) are outside this API's scope. Unknown text fields are retained in
-/// cbor. All WebAuthn CBOR uses the existing canonical decoder (§2.4, §3).
+/// Parse exactly fmt/authData/attStmt as specified by WebAuthn §6.5.4. Map and
+/// array statements are retained structurally; only none's empty-map syntax is
+/// checked. All WebAuthn CBOR uses the canonical decoder (§2.4, §3).
 pub fn parse_attestation_object(
   input : BytesView,
   limits~ : @cbor.Limits = @cbor.Limits::new(),
@@ -89,12 +89,20 @@ pub fn parse_attestation_object(
       _ => raise fail_at(0, "attestationObject", WrongType(expected="CBOR map"))
     }
     for (key, _) in entries {
-      if !(key.kind is @cbor.TextString(_)) {
-        raise fail_at(
-          key.range.start,
-          "attestationObject.key",
-          WrongType(expected="text string"),
-        )
+      match key.kind {
+        @cbor.TextString("fmt" | "authData" | "attStmt") => ()
+        @cbor.TextString(name) =>
+          raise fail_at(
+            key.range.start,
+            "attestationObject.key",
+            UnexpectedField(name),
+          )
+        _ =>
+          raise fail_at(
+            key.range.start,
+            "attestationObject.key",
+            WrongType(expected="text string"),
+          )
       }
     }
     let format_value = attestation_field(entries, "fmt")
@@ -125,26 +133,27 @@ pub fn parse_attestation_object(
         )
     }
     let statement = attestation_field(entries, "attStmt")
-    let statement_entries = match statement.kind {
-      @cbor.Map(entries) => entries
+    match statement.kind {
+      @cbor.Map(entries) =>
+        for (key, _) in entries {
+          if !(key.kind is @cbor.TextString(_)) {
+            raise fail_at(
+              key.range.start,
+              "attestationObject.attStmt.key",
+              WrongType(expected="text string"),
+            )
+          }
+        }
+      @cbor.Array(_) => ()
       _ =>
         raise fail_at(
           statement.range.start,
           "attestationObject.attStmt",
-          WrongType(expected="CBOR map"),
+          WrongType(expected="CBOR map or array"),
         )
-    }
-    for (key, _) in statement_entries {
-      if !(key.kind is @cbor.TextString(_)) {
-        raise fail_at(
-          key.range.start,
-          "attestationObject.attStmt.key",
-          WrongType(expected="text string"),
-        )
-      }
     }
     let status = if fmt == "none" {
-      if statement_entries.length() != 0 {
+      if !(statement.kind is @cbor.Map(entries) && entries.length() == 0) {
         raise fail_at(
           statement.range.start,
           "attestationObject.attStmt",

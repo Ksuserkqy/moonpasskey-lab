@@ -135,7 +135,7 @@ test "attestation rejects each wrong field type" {
   for
     (input, context, offset) in [
       (att_object(att_auth(), fmt=b"\x00"), "fmt", 5),
-      (att_object(att_auth(), stmt=b"\x80"), "attStmt", 18),
+      (att_object(att_auth(), stmt=b"\xf6"), "attStmt", 18),
       (b"\xa3\x63fmt\x64none\x67attStmt\xa0\x68authData\x60", "authData", 28),
     ] {
     let error = att_error(input)
@@ -233,16 +233,210 @@ test "attestation rejects nontext outer keys and statement keys" {
 }
 
 ///|
-test "attestation keeps unknown fields in the raw structured map" {
+test "attestation rejects extra outer field between required members" {
   let valid = att_object(att_auth())
   // Same encoded key length: 'fmt' sorts before 'new'.
   let input = b"\xa4" +
     valid[1:10].to_owned() +
     b"\x63new\x01" +
     valid[10:].to_owned()
+  let error = att_error(input)
+  assert_eq(error.kind, @webauthn.UnexpectedField("new"))
+  assert_eq(error.offset, 10)
+  assert_eq(error.context, "attestationObject.key")
+}
+
+///|
+test "attestation rejects extra outer fields before and after required members" {
+  let valid = att_object(att_auth())
+  let before = b"\xa4\x61a\x00" + valid[1:].to_owned()
+  let after = b"\xa4" + valid[1:].to_owned() + b"\x69zzzzzzzzz\x00"
+  for
+    (input, name, offset) in [
+      (before, "a", 1),
+      (after, "zzzzzzzzz", valid.length()),
+    ] {
+    let error = att_error(input)
+    assert_eq(error.kind, @webauthn.UnexpectedField(name))
+    assert_eq(error.offset, offset)
+    assert_eq(error.context, "attestationObject.key")
+  }
+}
+
+///|
+test "attestation unknown field cannot replace a required outer field" {
+  let valid = att_object(att_auth())
+  // Replace fmt with an equally long canonical key, retaining three members.
+  let input = b"\xa3\x63new" + valid[5:].to_owned()
+  let error = att_error(input)
+  assert_eq(error.kind, @webauthn.UnexpectedField("new"))
+  assert_eq(error.offset, 1)
+  assert_eq(error.context, "attestationObject.key")
+}
+
+///|
+test "attestation preserves unknown inner statement map fields" {
+  let statement = b"\xa1\x66future\xa1\x61x\x00"
+  let input = att_object(att_auth(), fmt=b"\x66future", stmt=statement)
   let parsed = att_parsed(input)
-  assert_true(parsed.cbor.kind is @cbor.Map(entries) && entries.length() == 4)
+  assert_eq(parsed.statement_status, @webauthn.FormatNotValidated)
+  assert_eq(parsed.att_stmt.range, { start: 20, end: 20 + statement.length(), })
+  assert_eq(
+    parsed.raw[parsed.att_stmt.range.start:parsed.att_stmt.range.end],
+    statement[:],
+  )
+  guard parsed.att_stmt.kind is @cbor.Map(entries) else {
+    fail("expected statement map")
+  }
+  assert_eq(entries.length(), 1)
+  assert_eq(entries[0].0.kind, @cbor.TextString("future"))
+  guard entries[0].1.kind is @cbor.Map(inner) else {
+    fail("expected inner map")
+  }
+  assert_eq(inner[0].0.kind, @cbor.TextString("x"))
+  assert_eq(inner[0].1.kind, @cbor.Unsigned(0UL))
+}
+
+///|
+test "attestation array statements retain raw nested values and ranges" {
+  let statement = b"\x82\xa1\x61x\x00\x81\xf5"
+  let input = att_object(att_auth(), fmt=b"\x66future", stmt=statement)
+  let parsed = att_parsed(input)
   assert_eq(parsed.raw, input[:])
+  assert_eq(parsed.statement_status, @webauthn.FormatNotValidated)
+  assert_eq(parsed.att_stmt.range, { start: 20, end: 27, })
+  assert_eq(parsed.raw[20:27], statement[:])
+  guard parsed.att_stmt.kind is @cbor.Array(items) else {
+    fail("expected statement array")
+  }
+  assert_eq(items.length(), 2)
+  assert_eq(items[0].range, { start: 21, end: 25, })
+  assert_eq(items[1].range, { start: 25, end: 27, })
+  guard items[0].kind is @cbor.Map(entries) else { fail("expected map item") }
+  assert_eq(entries[0].0.kind, @cbor.TextString("x"))
+  assert_eq(entries[0].1.kind, @cbor.Unsigned(0UL))
+  guard items[1].kind is @cbor.Array(inner) else { fail("expected array item") }
+  assert_eq(inner[0].kind, @cbor.Boolean(true))
+  assert_eq(parsed.auth_data.raw, att_auth()[:])
+  assert_true(parsed.auth_data.attested is Some(_))
+}
+
+///|
+test "attestation empty and compound-named arrays remain format unvalidated" {
+  for statement in [b"\x80", b"\x81\xa0"] {
+    let parsed = att_parsed(
+      att_object(att_auth(), fmt=b"\x68compound", stmt=statement),
+    )
+    assert_eq(parsed.fmt, "compound")
+    assert_eq(parsed.statement_status, @webauthn.FormatNotValidated)
+    assert_true(parsed.att_stmt.kind is @cbor.Array(_))
+    assert_eq(
+      parsed.raw[parsed.att_stmt.range.start:parsed.att_stmt.range.end],
+      statement[:],
+    )
+  }
+}
+
+///|
+test "attestation none rejects both empty and nonempty array statements" {
+  for statement in [b"\x80", b"\x81\xa0"] {
+    let error = att_error(att_object(att_auth(), stmt=statement))
+    assert_eq(error.kind, @webauthn.InvalidNoneStatement)
+    assert_eq(error.offset, 18)
+    assert_eq(error.context, "attestationObject.attStmt")
+  }
+}
+
+///|
+test "attestation statements reject scalar CBOR types" {
+  for statement in [b"\x00", b"\x40", b"\x60", b"\xf4", b"\xf6"] {
+    let error = att_error(
+      att_object(att_auth(), fmt=b"\x66future", stmt=statement),
+    )
+    assert_eq(error.kind, @webauthn.WrongType(expected="CBOR map or array"))
+    assert_eq(error.offset, 20)
+    assert_eq(error.context, "attestationObject.attStmt")
+  }
+}
+
+///|
+test "attestation array statements obey item and shared node budgets" {
+  let input = att_object(att_auth(), fmt=b"\x66future", stmt=b"\x82\x00\x01")
+  let items = att_error(input, limits=@cbor.Limits::new(max_array_items=1))
+  assert_eq(items.offset, 20)
+  assert_eq(items.context, "attestationObject.root.map[1].value")
+  assert_eq(
+    items.kind,
+    @webauthn.Cbor(
+      @cbor.ResourceLimit(name="max_array_items", limit=1, actual=2UL),
+    ),
+  )
+  assert_true(
+    @webauthn.parse_attestation_object(
+      input,
+      limits=@cbor.Limits::new(max_values=12),
+    )
+    is Ok(_),
+  )
+  let nodes = att_error(input, limits=@cbor.Limits::new(max_values=11))
+  assert_true(nodes.context.contains("credentialPublicKey"))
+  assert_eq(
+    nodes.kind,
+    @webauthn.Cbor(@cbor.ResourceLimit(name="max_values", limit=2, actual=3UL)),
+  )
+}
+
+///|
+test "attestation array statements retain caller and CTAP depth limits" {
+  let four = att_object(att_auth(), fmt=b"\x66future", stmt=b"\x81\x81\x81\x00")
+  assert_true(@webauthn.parse_attestation_object(four) is Ok(_))
+  let caller = att_error(four, limits=@cbor.Limits::new(max_depth=3))
+  assert_eq(caller.offset, 22)
+  assert_eq(
+    caller.kind,
+    @webauthn.Cbor(@cbor.ResourceLimit(name="max_depth", limit=3, actual=4UL)),
+  )
+  let five = att_object(att_auth(), fmt=b"\x66future", stmt=b"\x81\x81\x81\x80")
+  let canonical = att_error(five, limits=@cbor.Limits::new(max_depth=64))
+  assert_eq(canonical.offset, 23)
+  assert_eq(
+    canonical.kind,
+    @webauthn.Cbor(
+      @cbor.ResourceLimit(name="ctap2_container_depth", limit=4, actual=5UL),
+    ),
+  )
+}
+
+///|
+test "attestation arrays preserve nested map duplicate-key errors" {
+  let input = att_object(
+    att_auth(),
+    fmt=b"\x66future",
+    stmt=b"\x81\xa2\x61x\x00\x61x\x01",
+  )
+  let error = att_error(input)
+  assert_eq(error.offset, 25)
+  assert_eq(
+    error.context,
+    "attestationObject.root.map[1].value.array[0].map[1].key",
+  )
+  assert_eq(error.kind, @webauthn.Cbor(@cbor.DuplicateMapKey(first_offset=22)))
+}
+
+///|
+test "attestation malformed and truncated arrays retain exact CBOR offsets" {
+  let prefix = b"\xa3\x63fmt\x66future\x67attStmt"
+  let truncated = att_error(prefix + b"\x81")
+  assert_eq(truncated.offset, 21)
+  assert_eq(truncated.context, "attestationObject.root.map[1].value.array[0]")
+  assert_eq(
+    truncated.kind,
+    @webauthn.Cbor(@cbor.UnexpectedEnd(expected=1, remaining=0)),
+  )
+  let malformed = att_error(prefix + b"\x81\xff")
+  assert_eq(malformed.offset, 21)
+  assert_eq(malformed.context, "attestationObject.root.map[1].value.array[0]")
+  assert_eq(malformed.kind, @webauthn.Cbor(@cbor.UnexpectedBreak))
 }
 
 ///|
