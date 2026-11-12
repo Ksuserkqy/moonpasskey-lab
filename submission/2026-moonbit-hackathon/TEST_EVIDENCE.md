@@ -82,7 +82,27 @@ PR #8 于 `2026-11-12T10:58:03Z` 合入 main，head 为 `6e4136bac9f18dd88359e5b
 
 保存了一份 Safari/macOS 平台 Passkey 真实测试注册与 Assertion 成功记录。实际请求 UV 为 preferred，响应 UP/UV/BE/BS 均为 true，signCount 为 0，DER 有效，Core 12 项 PASS。provider 来源为维护者选择。旧导出没有版本级事务字段，规范化后为 UNKNOWN。报告 SHA-256 为 `0f27841c5fcf6d84927a7b53b66a9f6b24aa2fa0feb84f7caa711cd13311c9af`。[设备记录](../../docs/ASSERTION-INTEROP.md) · [原始脱敏导出](../../docs/interop/safari-macos-2026-11-12.redacted.json)
 
-UV Required 新设备流程、iPhone、Chrome、Windows Hello、USB/NFC 设备均待执行或因 HTTPS 入口缺项阻塞。Node/OpenSSL 合成签名、数据库竞争与 Nginx 合成 TLS 的结果按各自测试范围记录。公网部署、真实 DNS、Let's Encrypt 证书与手机访问尚未执行。[人工矩阵](../../docs/ASSERTION-INTEROP.md#phase-71-设备验收矩阵) · [部署范围](../../deploy/ubuntu-nginx/VALIDATION.md)
+新增 Chrome/macOS UV Required 注册及两次 Assertion 的实际脱敏报告，维护者已确认使用 Chrome。三份均为 PASS / COMMITTED，事务版本为 null→0、0→1、1→2。两次 Assertion 的 DER 签名有效、12项检查PASS，计数器0→0为 NOT_SUPPORTED。Provider 标签为1Password，来源保持 UNKNOWN，原始文件、时间及摘要见设备记录。
+
+Safari UV Required、Safari 重复认证、Google Password Manager、iPhone、Windows Hello、USB/NFC 仍待执行或因 HTTPS 入口缺项阻塞。Node/OpenSSL 合成签名、数据库竞争与 Nginx 合成 TLS 的结果按各自测试范围记录。公网部署、真实 DNS、Let's Encrypt 证书与手机访问尚未执行。[人工矩阵与归档](../../docs/ASSERTION-INTEROP.md) · [部署范围](../../deploy/ubuntu-nginx/VALIDATION.md)
+
+## main 整合与最终证据归档
+
+PR #10 已于 `2026-11-12T12:23:24Z` 合入 main，merge commit 为 `fee2974859779b11a5264594234b6812a54b3dd8`。本次证据归档分支从该 main 创建。[PR #10](https://github.com/Ksuserkqy/moonpasskey-lab/pull/10)
+
+main 的实际运行 `43217448307` 六项 completed/success，覆盖四目标、RP 与 Dashboard。PR #10 head `cf01dcb457daa06eebc6a1c4800b5845930155f7` 的日志另确认四目标各 Core491/491、CLI7/7，RP57/57、Dashboard26/26。[main CI](https://github.com/Ksuserkqy/moonpasskey-lab/actions/runs/43217448307) · [PR #10 head CI](https://github.com/Ksuserkqy/moonpasskey-lab/actions/runs/43210565358)
+
+新增三份设备报告不计入自动化测试数量，独立用例总数继续为631。报告结构检查和已保存的 Core 结果按不同证据阅读。
+
+| 本轮执行 | 实际结果 |
+| --- | --- |
+| 现有报告检查器，显式读取三份原导出 | 3/3 schema v1 PASS |
+| 默认扫描归档目录 | 3份新v1与1份历史报告，共4份PASS |
+| 现有 Dashboard / 报告测试 | 26/26，0失败 |
+| 一次性字段交叉核对 | 原文件与归档字节相同，配置、UV、时间顺序、COMMITTED版本、DER和计数器一致 |
+| 历史 Safari 摘要 | 与原SHA-256相同 |
+
+报告中未保留原始签名消息，当前脚本没有重新执行密码学验签。签名有效与事务提交来自维护者提供的导出结果。三份文件省略 credential ID 和完整 challenge，独立关联同一凭证及不同挑战需要维护者流程记录。详细结论及人工清单见 [最终验收](FINAL_READINESS.md)。
 
 ## 复验入口
 

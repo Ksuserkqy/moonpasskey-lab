@@ -30,7 +30,7 @@ CLI ─────────────────────────�
 | 真实设备 | Safari/macOS 历史注册与 Assertion PASS；请求 UV=preferred，实际 UV=true，DER 有效、Core 12 项 PASS |
 | 部署工程 | Ubuntu 22.04 隔离虚拟机中实际 Nginx / TLS / 访问控制测试通过；未部署公网服务器 |
 
-当前支持 ES256 Assertion 和最小 `none` 测试登记。其他算法、attestation 信任与完整 WebAuthn 符合性未实现；Safari required、iOS、Chrome 和公网 HTTPS 验收未完成。演示中的合成输入与历史真实设备报告分别标识。
+Chrome/macOS UV Required 另有一次注册和两次 Assertion PASS，DER有效、数据库 COMMITTED，Provider 来源保持 UNKNOWN。当前支持 ES256 Assertion 和最小 `none` 测试登记，其他算法、attestation 信任与完整 WebAuthn 符合性待实现。Safari required、Google Password Manager、iOS 与公网 HTTPS 仍待验收。[设备记录](../../docs/ASSERTION-INTEROP.md)
 
 项目使用 Apache-2.0 许可证。验收环境固定 MoonBit `0.10.20+65efd5b93`、MoonCrypt `0.4.16`、Node.js `24.18.0`。AI 辅助实现与审阅，维护者决定标准取舍、完成真实系统认证并负责最终接受。
 

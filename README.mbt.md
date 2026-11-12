@@ -98,7 +98,7 @@ MoonBit `analysis` 提供统一 JSON 入口。Node 宿主加载其 JS 产物并�
 
 四目标 Core / CLI 回归均通过。Ubuntu 22.04 隔离虚拟机中实际验证 Nginx 配置、上游 TLS、Basic Auth、systemd unit 和 Shell 脚本。参赛整理另复验 Dashboard 26 项、CLI 演示、干净源码构建和实际 HTTP / Core 路径，命令与证据范围详见测试记录。[测试证据](submission/2026-moonbit-hackathon/TEST_EVIDENCE.md) · [GitHub Actions](https://github.com/Ksuserkqy/moonpasskey-lab/actions) · [Ubuntu 验证](deploy/ubuntu-nginx/VALIDATION.md)
 
-2026-11-12 的 Safari/macOS 平台 Passkey 历史记录为 UV preferred、实际 UV=true、DER 有效、Core 12 项 PASS。新的 Safari required、iOS、Chrome 和公网 HTTPS 验收仍待执行。[设备矩阵与历史报告](docs/ASSERTION-INTEROP.md)
+2026-11-12 的 Safari/macOS 平台 Passkey 历史记录为 UV preferred、实际 UV=true、DER 有效、Core 12 项 PASS。另已归档维护者确认的 Chrome/macOS UV Required 注册及两次 Assertion PASS，DER有效、数据库 COMMITTED，Provider 标签为 1Password、来源 UNKNOWN。Safari required、Google Password Manager、iOS 和公网 HTTPS 验收仍待执行。[设备矩阵与历史报告](docs/ASSERTION-INTEROP.md)
 
 ## 标准支持范围
 
@@ -123,6 +123,6 @@ MoonBit `analysis` 提供统一 JSON 入口。Node 宿主加载其 JS 产物并�
 
 ## 参赛材料
 
-[项目概览](submission/2026-moonbit-hackathon/PROJECT_OVERVIEW.md) · [申报参考草稿](submission/2026-moonbit-hackathon/APPLICATION.md) · [AI 辅助开发历程](submission/2026-moonbit-hackathon/DEVELOPMENT_STORY.md) · [FAQ](submission/2026-moonbit-hackathon/FAQ.md) · [资格核对](submission/2026-moonbit-hackathon/ELIGIBILITY.md) · [提交清单](submission/2026-moonbit-hackathon/SUBMISSION_CHECKLIST.md)
+[最终验收报告](submission/2026-moonbit-hackathon/FINAL_READINESS.md) · [项目概览](submission/2026-moonbit-hackathon/PROJECT_OVERVIEW.md) · [申报参考草稿](submission/2026-moonbit-hackathon/APPLICATION.md) · [AI 辅助开发历程](submission/2026-moonbit-hackathon/DEVELOPMENT_STORY.md) · [FAQ](submission/2026-moonbit-hackathon/FAQ.md) · [资格核对](submission/2026-moonbit-hackathon/ELIGIBILITY.md) · [提交清单](submission/2026-moonbit-hackathon/SUBMISSION_CHECKLIST.md)
 
 申报参考草稿由 AI 辅助整理。章程要求的一页 Markdown 项目申报书需要参赛者亲自撰写；资格、报名信息与当期时间以主办方确认结果为准。

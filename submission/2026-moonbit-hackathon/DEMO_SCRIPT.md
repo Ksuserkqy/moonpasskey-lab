@@ -26,7 +26,7 @@ DEMO_PORT=8790 ./scripts/demo.sh
 
 操作：展示 Dashboard 顶部本地服务配置与测试用途提示。
 
-讲解：“这是 MoonPasskey Lab，一个以纯 MoonBit Core 为中心的 WebAuthn ES256 解析与验证实验室。今天用 CLI 和 Dashboard 两个入口观察同一套验证结果。演示输入都明确标为 SYNTHETIC，只含公开测试字节与公钥，不含私钥，也不代表真实设备的互操作认证。”
+讲解：“这是 MoonPasskey Lab，一个以纯 MoonBit Core 为中心的 WebAuthn ES256 解析与验证实验室。今天用 CLI 和 Dashboard 两个入口观察同一套验证结果。CLI 与 Import assertion 输入都明确标为 SYNTHETIC，只含公开测试字节与公钥，不含私钥，也不代表真实设备的互操作认证。”
 
 ## A · 0:25–1:25：CLI 从字节解析到完整验证
 
@@ -72,11 +72,23 @@ moon run cmd/main --target js --deny-warn -- --input /tmp/moonpasskey-truncated.
 
 讲解：“Core 在错误处短路，其他 NOT_PERFORMED 表示尚未执行，不能当成成功。脚本只容忍这些已知失败的退出码，并继续核对状态、错误类型和失败检查；任何意外结果都会让演示脚本自身失败。”
 
-## 4:15–4:40：收尾
+## 4:15–4:40：归档设备报告回看与收尾
 
-操作：回到 Checks 和来源标签；结束录屏前停止本地服务。
+操作：前约 20 秒运行下列检查器，并只读打开三份归档 JSON，指向 `configuration.userVerification`、`authenticatorData.flags` 和 `databaseTransaction`。最后 5 秒停止本地服务。此段执行报告结构与脱敏契约检查，展示的 Core 结果和签名状态来自导出时保存的报告。
 
-讲解：“这个演示展示了从原始字节到策略与签名检查的可解释过程，以及 CLI、服务端、Dashboard 共用 Core 的实际路径。这里验证的是合成输入的行为；真实设备的登记、认证、来源与计数器变化，需要另行采集并如实记录。项目保留测试用途边界，不把合成 PASS 记成设备互操作成果。”
+```sh
+node --experimental-strip-types scripts/check-interop-reports.mjs
+```
+
+| 归档报告 | 导出中保存的结果 |
+| --- | --- |
+| [测试登记](../../docs/interop/local-uv-required-registration-2026-11-12.redacted.json) | PASS，UP/UV=true，COMMITTED null→0，signature / attestation_trust 为 NOT_PERFORMED |
+| [第一次认证](../../docs/interop/local-uv-required-assertion-1-2026-11-12.redacted.json) | Core 12 项 PASS，DER 签名有效，COMMITTED 0→1，counter=0 / NOT_SUPPORTED |
+| [重复认证](../../docs/interop/local-uv-required-assertion-2-2026-11-12.redacted.json) | Core 12 项 PASS，DER 签名有效，COMMITTED 1→2，counter=0 / NOT_SUPPORTED |
+
+三份报告记录 MacBookAir、MacOS 27.2、Google Chrome 157.0.8103.39，策略为 UV required。维护者已确认使用 Chrome。provider 字段保留 `1Password`，`providerSource` 保留 `UNKNOWN`。
+
+讲解：“最后回看已归档的 Chrome 设备报告。Required 下 UP、UV 为真，两次认证签名有效，事务版本从零推进到一、二。计数器均为零并报告 NOT_SUPPORTED。provider 来源保留 UNKNOWN。”
 
 ## 本次实际验证记录
 
