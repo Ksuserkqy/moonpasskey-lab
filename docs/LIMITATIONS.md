@@ -185,3 +185,11 @@ Counter 的 `NonIncreasing` 代表潜在风险，默认继续返回成功和风�
 参考服务默认内存存储，显式文件路径才持久化公开凭证状态与脱敏报告。单机 SQLite、可信本地会话和系统时钟属于运行边界。长期记录清理、生产账户认证恢复、全局限流、分布式事务和运维审计尚未实现。数据库 API 使用 Node 24.18 内置 node:sqlite，官方稳定性等级为 Release candidate。CLI 文件 API 会先读取全文件，超大不可信文件需在宿主侧设置资源预算。
 
 真实设备和浏览器覆盖按实际执行填写，未执行环境保持 NOT_PERFORMED。交互中的系统认证由维护者完成，自动化测试的合成签名与真实设备证据分别记录。[互操作矩阵](ASSERTION-INTEROP.md) · [参考 RP](REFERENCE-RP.md)
+
+## Phase 7.1 验收进度
+
+当前完成UV策略和实际TLS的自动化测试、事务元数据、离线HTTPS预检、版本化脱敏报告及历史来源校验。合成签名与TLS成功属于自动化证据。P7 Safari/macOS preferred的真实PASS记录保留原样。
+
+P7.1的Safari/macOS UV Required、iPhone注册与Assertion、跨设备HTTPS和Chrome/Google Password Manager仍需维护者实际执行。iPhone/HTTPS当前受专用域名、证书、访问控制和批准后部署条件阻塞。其他设备继续NOT_PERFORMED。工程准备完成时总体结论为PASS_WITH_WARNINGS，P0设备标准完成后再更新最终验收。
+
+HTTPS模板尚未运行外部connector，cloudflared本地不可用，尚未执行其实际ingress验证。配置模板和离线预检不能证明公网Access策略、JWT验证、边缘信任链或iPhone行为。实际地址在部署验证后填写。域名、Tunnel、DNS、防火墙、端口、根证书信任和生产域名使用受任务书维护者授权边界约束。[HTTPS说明](INTEROP-HTTPS.md) · [验收矩阵](ASSERTION-INTEROP.md)

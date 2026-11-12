@@ -1,0 +1,21 @@
+# TEST ONLY. Inert template for a maintainer-prepared, locally-managed tunnel.
+# Replace every placeholder in a private copy before validation or activation.
+# The Access application must protect this exact hostname and every path.
+tunnel: '<maintainer-prepared-tunnel-uuid>'
+credentials-file: '/absolute/private/path/tunnel-credentials.json'
+
+ingress:
+  - hostname: 'passkey-test.<owned-test-domain>'
+    service: 'https://127.0.0.1:8787'
+    originRequest:
+      originServerName: 'passkey-test.<owned-test-domain>'
+      httpHostHeader: 'passkey-test.<owned-test-domain>'
+      caPool: '/absolute/private/path/origin-ca.pem'
+      noTLSVerify: false
+      http2Origin: false
+      access:
+        required: true
+        teamName: '<cloudflare-team-name>'
+        audTag:
+          - '<exact-Access-application-AUD>'
+  - service: 'http_status:404'
