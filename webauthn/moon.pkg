@@ -1,7 +1,7 @@
 import {
-  "ksuserkqy/moonpasskey_lab/bytereader",
-  "ksuserkqy/moonpasskey_lab/cbor",
-  "ksuserkqy/moonpasskey_lab/base64url",
+  "Ksuserkqy/moonpasskey_lab/bytereader",
+  "Ksuserkqy/moonpasskey_lab/cbor",
+  "Ksuserkqy/moonpasskey_lab/base64url",
   "moonbitlang/core/json",
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/sorted_map",

@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "ksuserkqy/moonpasskey_lab/base64url"
+package "Ksuserkqy/moonpasskey_lab/base64url"
 
 import {
   "moonbitlang/core/debug",

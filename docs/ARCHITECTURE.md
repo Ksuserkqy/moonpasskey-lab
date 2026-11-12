@@ -2,7 +2,7 @@
 
 ## 阶段状态
 
-截至 2026-11-12，Phase 1 提供 MoonBit `base64url` 与 `bytereader` 包，Phase 2 提供 `cbor` 包，Phase 3 在 `webauthn` 包提供 ClientDataJSON、AuthenticatorData 和 AttestationObject 结构解析，attStmt 支持 Map/Array。Phase 4 增加 ES256 COSE 参数验证，Phase 5 增加 P-256 点导入、SHA-256、raw ES256 验签与 DER assertion 签名入口。Phase 6 增加 ES256 Assertion 的 RP 策略、凭证与账户绑定、计数器风险及状态更新建议。Phase 7 增加统一 analysis JSON 接口、已有 cmd/main 的 CLI、本地 Node/SQLite 参考 RP 和 Vue Dashboard。模块身份为 `ksuserkqy/moonpasskey_lab@0.1.0`，默认目标为 `wasm`。Core 验证调用方提供的可信配置、账户记录和认证字节，参考宿主管理挑战生命周期、事务和浏览器调用。
+截至 2026-11-12，Phase 1 提供 MoonBit `base64url` 与 `bytereader` 包，Phase 2 提供 `cbor` 包，Phase 3 在 `webauthn` 包提供 ClientDataJSON、AuthenticatorData 和 AttestationObject 结构解析，attStmt 支持 Map/Array。Phase 4 增加 ES256 COSE 参数验证，Phase 5 增加 P-256 点导入、SHA-256、raw ES256 验签与 DER assertion 签名入口。Phase 6 增加 ES256 Assertion 的 RP 策略、凭证与账户绑定、计数器风险及状态更新建议。Phase 7 增加统一 analysis JSON 接口、已有 cmd/main 的 CLI、本地 Node/SQLite 参考 RP 和 Vue Dashboard。模块身份为 `Ksuserkqy/moonpasskey_lab@0.1.0`，默认目标为 `wasm`。Core 验证调用方提供的可信配置、账户记录和认证字节，参考宿主管理挑战生命周期、事务和浏览器调用。
 
 ## 实际目录
 
