@@ -46,6 +46,14 @@
 - 已评估的后端缺少可核验的独立安全审计。其公开坐标范围检查缺口由 P4 强制范围检查覆盖，具体限制和四目标证据见开发记录。
 - CI 在解析外部依赖前初始化 Mooncakes registry，供全新 runner 获取固定版本元数据。
 
+### Phase 6 ES256 Assertion 与 RP 策略
+
+- 新增统一 `verify_webauthn_es256_assertion`，组合身份绑定、严格挑战、精确 Origin、跨域与顶层 Origin、RP ID hash、UP/UV、BE/BS 和原始 DER 验签。
+- 新增 CounterStatus 与默认 ReportOnly/显式 Reject 策略，成功后返回保留历史计数高水位及当前 BS 的凭证更新建议。
+- 复用现有解析预算、Base64URL、P5 密码学和安全字节比较，增加字段路径、相对原始字节位置与可区分的失败类型。
+- 补充官方集成与固定合成签名回归，记录挑战生命周期、并发提交、扩展策略和真实设备 `NOT_PERFORMED` 状态。详细阶段记录见 [P6 变更记录](docs/CHANGELOG.md)。
+- CI 将 setup-node 固定到使用 Node24 runtime 的官方 v6.5.0 提交，以处理旧 Action 的弃用警告。
+
 ### 文档与仓库流程
 
 - 记录架构、威胁模型、标准映射、竞品分析、开发过程和当前限制。
@@ -57,4 +65,4 @@
 
 `Generic` 与 `Ctap2Canonical` 整体状态均为 `PARTIAL`。IEEE 754 binary16/32/64 的结构化结果和值模型为 `NOT_IMPLEMENTED`，完整 payload 返回 `UnsupportedFloat`，截断 payload 返回读取错误。Generic 的 tag 与 indefinite-length 结构解析为 `NOT_IMPLEMENTED`，CTAP profile 对相应禁止编码返回明确错误。ES256 参数约束由 P4 提供；CTAP 命令语义、其他算法和设备互操作验证待实现。[当前限制](docs/LIMITATIONS.md) · [标准映射](docs/SPEC_MAPPING.md)
 
-ClientDataJSON、AuthenticatorData 与 AttestationObject（Map/Array attStmt）的通用结构解析已实现，P5 增加 ES256 点与签名原语，整体协议覆盖为 PARTIAL。compound 等逐格式语义、ES256 以外的 COSE 语义、字段信任、分析 CLI 和 Web Dashboard 为 NOT_IMPLEMENTED。完整 WebAuthn Level 3 符合性仍待建立验证证据。[架构与后续模块](docs/ARCHITECTURE.md)
+ClientDataJSON、AuthenticatorData 与 AttestationObject（Map/Array attStmt）的通用结构解析已实现，P5 增加 ES256 点与签名原语，P6 增加 Assertion 与 RP 策略核心，整体协议覆盖为 PARTIAL。compound 等逐格式语义、ES256 以外的 COSE 语义、注册信任、分析 CLI 和 Web Dashboard 为 NOT_IMPLEMENTED。完整 WebAuthn Level 3 符合性仍待建立验证证据。[架构与后续模块](docs/ARCHITECTURE.md)

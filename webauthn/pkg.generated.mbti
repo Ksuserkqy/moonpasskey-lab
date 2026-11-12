@@ -23,11 +23,118 @@ pub fn validate_es256_credential_public_key(BytesView, limits? : @cbor.Limits) -
 
 pub fn verify_es256_signature(ValidatedEs256PublicKey, BytesView, BytesView) -> Result[Bool, CryptoError]
 
+pub fn verify_webauthn_es256_assertion(AssertionVerificationRequest, AssertionCredentialRecord, AssertionVerificationPolicy, limits? : @cbor.Limits) -> Result[AssertionVerificationResult, AssertionVerificationError]
+
 pub fn verify_webauthn_es256_assertion_signature(ValidatedEs256PublicKey, BytesView, BytesView, BytesView) -> Result[Bool, CryptoError]
 
 // Errors
 
 // Types and methods
+pub(all) struct AssertionCredentialRecord {
+  credential_id : BytesView
+  user_handle : BytesView
+  public_key : ValidatedEs256PublicKey
+  sign_count : UInt32
+  backup_eligible : Bool?
+}
+
+#derive(Eq, @debug.Debug)
+pub struct AssertionCredentialUpdate {
+  credential_id : BytesView
+  previous_sign_count : UInt32
+  previous_backup_eligible : Bool?
+  sign_count : UInt32
+  backup_eligible : Bool?
+  backup_state : Bool
+}
+pub fn AssertionCredentialUpdate::equal(Self, Self) -> Bool
+pub fn AssertionCredentialUpdate::not_equal(Self, Self) -> Bool
+pub fn AssertionCredentialUpdate::to_repr(Self) -> @debug.Repr
+
+#derive(Eq, @debug.Debug)
+pub(all) enum AssertionUserIdentification {
+  Identified
+  Discoverable
+}
+pub fn AssertionUserIdentification::equal(Self, Self) -> Bool
+pub fn AssertionUserIdentification::not_equal(Self, Self) -> Bool
+pub fn AssertionUserIdentification::to_repr(Self) -> @debug.Repr
+
+#derive(Eq, @debug.Debug)
+pub(all) struct AssertionVerificationError {
+  context : String
+  offset : Int32?
+  kind : AssertionVerificationErrorKind
+}
+pub fn AssertionVerificationError::equal(Self, Self) -> Bool
+pub fn AssertionVerificationError::not_equal(Self, Self) -> Bool
+pub fn AssertionVerificationError::to_repr(Self) -> @debug.Repr
+
+#derive(Eq, @debug.Debug)
+pub(all) enum AssertionVerificationErrorKind {
+  Parse(ParseError)
+  Crypto(CryptoError)
+  InvalidConfiguration
+  ResourceLimit(limit~ : Int32, actual~ : Int32)
+  InvalidCredentialId
+  CredentialIdMismatch
+  CredentialNotAllowed
+  InvalidUserHandle
+  UserHandleRequired
+  UserHandleMismatch
+  EmptyChallenge
+  InvalidChallengeEncoding
+  ChallengeMismatch
+  InvalidClientDataType
+  OriginNotAllowed
+  CrossOriginNotAllowed
+  InconsistentTopOrigin
+  TopOriginNotAllowed
+  RpIdHashMismatch
+  UserPresenceRequired
+  UserVerificationRequired
+  BackupEligibilityMismatch
+  UnexpectedAttestedCredentialData
+  InvalidAssertionFlags
+  InvalidSignature
+  CounterNonIncreasing(stored~ : UInt32, received~ : UInt32)
+}
+pub fn AssertionVerificationErrorKind::equal(Self, Self) -> Bool
+pub fn AssertionVerificationErrorKind::not_equal(Self, Self) -> Bool
+pub fn AssertionVerificationErrorKind::to_repr(Self) -> @debug.Repr
+
+pub(all) struct AssertionVerificationPolicy {
+  expected_rp_id : String
+  allowed_origins : Array[String]
+  user_verification : UserVerificationRequirement
+  allow_cross_origin : Bool
+  allowed_top_origins : Array[String]
+  allowed_credential_ids : Array[Bytes]
+  counter_risk : CounterRiskPolicy
+}
+pub fn AssertionVerificationPolicy::new(String, Array[String], user_verification? : UserVerificationRequirement, allow_cross_origin? : Bool, allowed_top_origins? : Array[String], allowed_credential_ids? : Array[Bytes], counter_risk? : CounterRiskPolicy) -> Self
+
+pub(all) struct AssertionVerificationRequest {
+  client_data_json : BytesView
+  authenticator_data : BytesView
+  signature : BytesView
+  credential_id : BytesView
+  user_handle : BytesView?
+  expected_challenge : BytesView
+  user_identification : AssertionUserIdentification
+}
+
+#derive(Eq, @debug.Debug)
+pub struct AssertionVerificationResult {
+  client_data : ClientData
+  authenticator_data : AuthenticatorData
+  counter_status : CounterStatus
+  credential_update : AssertionCredentialUpdate
+}
+pub fn AssertionVerificationResult::equal(Self, Self) -> Bool
+pub fn AssertionVerificationResult::not_equal(Self, Self) -> Bool
+pub fn AssertionVerificationResult::to_repr(Self) -> @debug.Repr
+
 #derive(Eq, @debug.Debug)
 pub struct AttestationObject {
   raw : BytesView
@@ -117,6 +224,25 @@ pub struct ClientDataMember {
 pub fn ClientDataMember::equal(Self, Self) -> Bool
 pub fn ClientDataMember::not_equal(Self, Self) -> Bool
 pub fn ClientDataMember::to_repr(Self) -> @debug.Repr
+
+#derive(Eq, @debug.Debug)
+pub(all) enum CounterRiskPolicy {
+  ReportOnly
+  Reject
+}
+pub fn CounterRiskPolicy::equal(Self, Self) -> Bool
+pub fn CounterRiskPolicy::not_equal(Self, Self) -> Bool
+pub fn CounterRiskPolicy::to_repr(Self) -> @debug.Repr
+
+#derive(Eq, @debug.Debug)
+pub(all) enum CounterStatus {
+  NotSupported
+  Advanced
+  NonIncreasing
+}
+pub fn CounterStatus::equal(Self, Self) -> Bool
+pub fn CounterStatus::not_equal(Self, Self) -> Bool
+pub fn CounterStatus::to_repr(Self) -> @debug.Repr
 
 #derive(Eq, @debug.Debug)
 pub(all) enum CryptoError {
@@ -210,6 +336,16 @@ pub(all) enum StatementStatus {
 pub fn StatementStatus::equal(Self, Self) -> Bool
 pub fn StatementStatus::not_equal(Self, Self) -> Bool
 pub fn StatementStatus::to_repr(Self) -> @debug.Repr
+
+#derive(Eq, @debug.Debug)
+pub(all) enum UserVerificationRequirement {
+  Required
+  Preferred
+  Discouraged
+}
+pub fn UserVerificationRequirement::equal(Self, Self) -> Bool
+pub fn UserVerificationRequirement::not_equal(Self, Self) -> Bool
+pub fn UserVerificationRequirement::to_repr(Self) -> @debug.Repr
 
 pub struct ValidatedEs256PublicKey {
   // private fields
