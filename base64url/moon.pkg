@@ -3,5 +3,5 @@ import {
 }
 
 import {
-  "ksuserkqy/moonpasskey_lab/bytereader",
+  "Ksuserkqy/moonpasskey_lab/bytereader",
 } for "test"

@@ -1,8 +1,8 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "ksuserkqy/moonpasskey_lab/webauthn"
+package "Ksuserkqy/moonpasskey_lab/webauthn"
 
 import {
-  "ksuserkqy/moonpasskey_lab/cbor",
+  "Ksuserkqy/moonpasskey_lab/cbor",
   "moonbitlang/core/debug",
 }
 

@@ -9,7 +9,7 @@
 //   "moonbitlang/x@0.4.6",
 // }
 
-name = "ksuserkqy/moonpasskey_lab"
+name = "Ksuserkqy/moonpasskey_lab"
 
 version = "0.1.0"
 

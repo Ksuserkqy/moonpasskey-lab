@@ -1,10 +1,10 @@
 import {
-  "ksuserkqy/moonpasskey_lab/bytereader",
+  "Ksuserkqy/moonpasskey_lab/bytereader",
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/sorted_map",
 }
 
 import {
-  "ksuserkqy/moonpasskey_lab/base64url",
-  "ksuserkqy/moonpasskey_lab/webauthn",
+  "Ksuserkqy/moonpasskey_lab/base64url",
+  "Ksuserkqy/moonpasskey_lab/webauthn",
 } for "test"

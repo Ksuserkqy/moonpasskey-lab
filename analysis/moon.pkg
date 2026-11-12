@@ -1,7 +1,7 @@
 import {
-  "ksuserkqy/moonpasskey_lab/webauthn",
-  "ksuserkqy/moonpasskey_lab/base64url",
-  "ksuserkqy/moonpasskey_lab/cbor",
+  "Ksuserkqy/moonpasskey_lab/webauthn",
+  "Ksuserkqy/moonpasskey_lab/base64url",
+  "Ksuserkqy/moonpasskey_lab/cbor",
   "moonbitlang/core/json",
   "moonbitlang/core/encoding/utf8",
   "moonbitstack/mooncrypt/spec",
