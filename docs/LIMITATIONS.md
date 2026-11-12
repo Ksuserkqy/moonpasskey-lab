@@ -2,14 +2,14 @@
 
 ## 已实现范围
 
-Phase 1 提供 Base64URL 编解码和 ByteReader，Phase 2 提供有界 CBOR，Phase 3 提供 WebAuthn 结构解析，Phase 4 提供显式 ES256 参数验证。Phase 5 增加 P-256 点导入、SHA-256、raw ES256 验签和 assertion 签名消息构造。各入口分别记录已检查的属性。
+Phase 1 提供 Base64URL 编解码和 ByteReader，Phase 2 提供有界 CBOR，Phase 3 提供 WebAuthn 结构解析，Phase 4 提供显式 ES256 参数验证。Phase 5 增加 P-256 点导入、SHA-256、raw ES256 验签与 DER assertion 签名入口。Phase 6 增加 ES256 Assertion 的 RP 策略、身份绑定、计数器风险与状态更新建议。各入口分别记录已检查的属性。
 
 P2 历史验收基线为 107 个测试，其中 Base64URL 24 个、ByteReader 20 个、CBOR 63 个，四目标当时均为 107 通过、0 失败。P3 首次验收新增 99 项，总计 206 项且四目标通过。审查修正保留既有覆盖（重写外层未知字段策略测试），新增 Map/Array 与 W3C §16 官方向量回归；当前测试数量及四目标结果见开发记录。远程 CI 状态见对应 PR，详细本地证据见 [开发记录](DEVELOPMENT.md)。
 
 ## Base64URL
 
 - `encode` 默认省略 padding，`padding=true` 可输出完整 padding。
-- `decode` 接受完整规范 padding 和无 padding。P3 的 ClientDataJSON 仅保留 challenge 字符串，尚未执行其 Base64URL 格式、无 padding 限制或 challenge 匹配。
+- `decode` 接受完整规范 padding 和无 padding。P3 的 ClientDataJSON 仅保留 challenge 字符串，P6 统一验证入口另外执行严格无 padding 格式、规范表示与 challenge 匹配。
 - 编码二进制输入和解码输出上限均为 1,048,576 字节，文本输入上限为 1,398,104 UTF-16 code units。这是固定项目策略。
 - `InvalidEncoding` 将非法长度、错误 padding、非零未使用位合并报告。`InvalidCharacter` 单独提供零基 UTF-16 位置。
 - 解码优先检查原文大小，再检查字符、预期输出大小及标准库编码规则。存在多种错误时按此顺序返回。
@@ -63,13 +63,13 @@ P2 历史验收基线为 107 个测试，其中 Base64URL 24 个、ByteReader 20
 | 其他 Map/Array statement 格式 | `PARTIAL` | 保留 fmt 与原始结构，状态 `FormatNotValidated`；未实现具体格式验证 |
 | compound 等数组型格式的语义验证 | `NOT_IMPLEMENTED` | 允许 Array 容器并保留 CBOR；未验证其逐元素格式规则、组合策略或密码学内容 |
 | COSE Key 语义验证整体 | `PARTIAL` | P4 显式支持 ES256 参数与域范围，P5 通过另一入口检查 P-256 点，其他算法待实现 |
-| WebAuthn RP 验证流程 | `NOT_IMPLEMENTED` | challenge、origin、RP ID、策略、证书和信任验证待实现 |
+| ES256 Assertion RP 策略 | `IMPLEMENTED` | P6 检查 challenge、精确 origin、RP ID hash、身份、flags、签名与 counter，并返回状态更新建议 |
 
 ### ClientDataJSON
 
 - `raw` 完整保留输入，包括 BOM、空白、字段顺序和转义；后续哈希须使用这些原始字节。解析时按 UTF-8 解码规则跳过一个初始 BOM，不修改 `raw`。
 - `type`、`challenge`、`origin` 必须为字符串，空字符串和未知 operation type 在结构层可通过。`crossOrigin`、`topOrigin` 缺省保留为 `None`，显式值分别要求 Boolean 和 String，不接受 null。
-- 不执行 challenge 的 Base64URL 解码或匹配、不判断 origin 信任、不检查 `crossOrigin` 与 `topOrigin` 的生成关系，因此此结果不表示满足整个 CollectedClientData 语义。
+- `parse_client_data` 保留结构层契约。P6 的独立统一入口检查 challenge、origin 与 crossOrigin/topOrigin 策略，调用方需要显式选择所需层级。
 - 所有对象按解码后的成员名称拒绝重复，包括未知嵌套字段。未知顶层成员保留名称和原始 key/value 范围；未知值只验证语法和预算，不建立可直接访问的完整 JSON 值树。
 - 严格拒绝非法 UTF-8、控制字符、错误转义和未配对 surrogate escape；最后一项是保证 Unicode scalar 字符串的项目策略。嵌套 context 对 JSON 使用成员序号与数组下标。
 
@@ -110,7 +110,7 @@ AT 公钥、ED 扩展共享同一节点预算，AttestationObject 外层树的�
 | ES256 raw 签名验证 | `IMPLEMENTED` | 恰好 64 字节 `R || S`，`1 <= R,S < n`，message-based SHA-256 |
 | assertion 签名消息构造 | `IMPLEMENTED` | 原始 authData 拼接 `SHA256(原始 clientDataJSON)` |
 | WebAuthn ES256 assertion 验签 | `IMPLEMENTED` | 严格 DER 签名解码、原始签名消息构造与 P-256/SHA-256 验签 |
-| 完整 RP 验证流程 | `NOT_IMPLEMENTED` | challenge、origin、RP ID、UP/UV 策略、计数器风险与认证结论待实现 |
+| 服务端认证完整交付 | `PARTIAL` | P6 已验证调用方提供的配置和记录，挑战存储、账户查找、传输封装、业务授权与持久化提交由调用方完成 |
 | Attestation 证书链与信任验证 | `NOT_IMPLEMENTED` | 逐格式签名、X.509 链、可信根和 attestation 信任策略待实现 |
 
 ### 公钥与签名契约
@@ -133,19 +133,47 @@ SHA-256 与签名消息构造消费调用方提供的原始字节 view。空 aut
 
 隔离探针实际使用固定 `0.10.20+65efd5b93` 工具链，在 wasm、wasm-gc、js、native 各完成 275 项独立测试，并通过带 `--deny-warn` 的检查、生产构建和运行。最终仓库完整回归与远程 CI 状态见开发记录和对应 PR。较新 `0.10.21` 对依赖源码报告弃用警告，后续工具链变更需重新核验兼容性。[开发记录](DEVELOPMENT.md)
 
+## P6 Assertion 验证范围
+
+| 能力 | 状态 | 边界 |
+| --- | --- | --- |
+| ES256 Assertion 统一验证 | `IMPLEMENTED` | 对可信配置、已选账户记录、原始 JSON/authData 和 DER 签名执行下述检查 |
+| Challenge、origin 与跨域策略 | `IMPLEMENTED` | 非空 challenge、无 padding 规范 Base64URL、精确 origin/topOrigin 允许列表与显式跨域开关 |
+| RP ID hash、UP/UV 与 BE/BS | `IMPLEMENTED` | 原文 RP ID 的 SHA-256、安全字节比较、Required UV、BE 记录一致性及 BS⇒BE |
+| 凭证与账户绑定 | `IMPLEMENTED` | credential ID 同时匹配可信记录和非空 allowCredentials，存在的 userHandle 匹配可信账户句柄 |
+| Discoverable 账户查找 | Core 外部责任 | 调用方先解析 userHandle 对应账户并选出可信记录，Core 要求句柄存在且匹配 |
+| Counter 风险与状态建议 | `IMPLEMENTED` | 区分0→0、递增与非递增，默认 ReportOnly，可显式 Reject，只有成功结果携带更新建议 |
+| 真实设备与浏览器互操作 | `NOT_PERFORMED` | 方案及执行矩阵见 ASSERTION-INTEROP.md |
+
+`AssertionVerificationPolicy::new` 默认 UV 为 `Preferred`、跨域关闭、counter 为 `ReportOnly`。Origin 列表必须非空并由可信调用方显式配置。允许列表使用完整字符串匹配，配置中写入的 scheme、大小写、端口、Unicode 和原生客户端 origin 字符串均保留。配置合法性检查只保证非空、有效 UTF-16 与字节预算，授权哪些 origin 由 RP 决定。
+
+RP ID 配置使用 ASCII 域名标签语法检查，包括 localhost。标签长度1至63，总长度不超过253，拒绝 URL 字符、空标签、首尾连字符和末尾点。哈希保留配置原文大小写。该检查仍可接受数字或 IPv4 形式的标签，没有实现完整 valid-domain、PSL、IDNA、可注册性或浏览器 origin 与 RP ID 的授权判断，调用方应提供已建立适用性的 RP ID。§10.1.1 AppID 特殊哈希路径未实现，当前只验证配置 RP ID 的哈希。安全比较复用 MoonCrypt `@spec.eq`，等长输入逐字节折叠比较，长度属于公开信息。[WebAuthn §10.1.1](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-appid-extension)
+
+`crossOrigin=true` 必须得到 RP 明确授权。存在 topOrigin 时，crossOrigin 必须显式为 true 且 topOrigin 匹配独立允许列表。跨域已获授权时，topOrigin 缺失仍被接受，符合该字段的可选性。P6 严格拒绝 Assertion 的 AT 和非零 RFU 位，P3 的通用结构解析行为独立保留。扩展输出经过有界解析后保留在成功结果中，本入口依 §7.2 step23 的 RP 选择忽略扩展语义，AppID 等需要专门验证流程的扩展没有实现。[WebAuthn §5.8.1、§7.2](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-verifying-assertion)
+
+请求 credential ID、可信记录 ID 和 allowCredentials 中各 ID 要求1至1023字节。账户 userHandle 以及存在的响应 userHandle 要求1至64字节。`Identified` 模式依赖调用方已确认的账户记录，响应句柄可省略。`Discoverable` 模式要求响应句柄存在，且账户查找和记录归属由调用方保证。响应外层 `type=public-key`、rawId 的传输解码和 HTTP/session 绑定属于调用方边界。
+
+Counter 的 `NonIncreasing` 代表潜在风险，默认继续返回成功和风险状态。更新建议采用 `max(旧计数,收到计数)`，该高水位策略属于本项目 ReportOnly 选择。`Reject` 显式拒绝非递增情况。BS 可变化并返回最新值，已存 `backup_eligible=None` 保持未知状态。[WebAuthn §6.1.1、§6.1.3](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-sign-counter)
+
+§7.2 step24.3 的 `uvInitialized` 生命周期与初始化时可能需要的额外认证因子没有实现，相关授权更新和持久化操作由调用方完成。[WebAuthn §7.2](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-verifying-assertion)
+
+资源配置复用 `@cbor.Limits`，请求 JSON 与 authData 分别有界解析。预期 challenge 不超过输入预算与 Base64URL 的1 MiB上限，配置字符串按 UTF-8 字节计数，列表项数使用 `max_array_items`，DER 签名沿用8至72字节限制。跨请求 CPU、并发内存与文件读取总预算仍由调用层控制。
+
+`verify_webauthn_es256_assertion` 返回 `Err` 时没有状态建议，解析、配置、身份、策略、签名格式、签名不匹配与 counter 拒绝可分别识别。错误保留字段路径与适用的原始字节 offset。Core 只能匹配调用方提供的 outstanding challenge。调用方必须生成足够随机的 challenge，按 §13.4.3 建议至少16字节，并负责有效期、服务端存储与成功后的原子消费。并发 Assertion 可能乱序，提交建议前应通过事务或 revision/CAS 重读旧状态并协调挑战消费，避免重复使用与覆盖更新。[WebAuthn §13.4.3、§7.2](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-cryptographic-challenges)
+
 ## 尚未实现的能力
 
 | 功能 | 当前状态 |
 | --- | --- |
 | COSE 整体语义与公钥有效性 | `PARTIAL`，ES256 参数与显式 P-256 点导入已实现，其他算法待实现 |
 | CBOR tags、floats、indefinite-length 支持 | 当前明确 unsupported |
-| challenge、origin、RP ID、ceremony 及计数器风险等安全规则 | `NOT_IMPLEMENTED`；本轮仅加入上述结构约束 |
+| Challenge 生命周期、账户数据库及持久化事务 | Core 外部责任，调用方负责随机生成、过期、一次性消费、账户查找及原子状态提交 |
 | ES384、ES512、RS256、PS256、EdDSA 等密码学能力 | `NOT_IMPLEMENTED` |
 | 证书链、attestation 逐格式签名与信任验证 | `NOT_IMPLEMENTED` |
 | 文件分析 CLI、报告导出、退出码契约 | 当前入口仅输出 Hello |
 | Vue Dashboard、JS/Wasm 前端集成 | 待实现 |
-| 互操作矩阵、真实设备及浏览器测试 | 待实现 |
+| 真实设备及浏览器互操作执行 | `NOT_PERFORMED`，复现步骤与矩阵见 ASSERTION-INTEROP.md |
 | 持续集成测试流水线 | 已配置四目标检查、测试、构建、格式和接口验证，实际远程状态见对应 PR |
 | 模糊测试、性能基准 | 待建立 |
 
-各入口分别返回结构、参数、曲线点或签名验证结果。完整 RP 验证和 WebAuthn Level 3 符合性仍需对应流程与测试。[WebAuthn Level 3 §7](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-rp-operations)
+各入口分别返回结构、参数、密码学或 ES256 Assertion 策略验证结果。完整服务端事务和 WebAuthn Level 3 符合性仍需部署流程与对应测试。[WebAuthn Level 3 §7](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-rp-operations)

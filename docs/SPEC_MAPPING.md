@@ -102,7 +102,7 @@ P3 新增 `webauthn` 包。以下 `IMPLEMENTED` 指相应结构检查已实现�
 
 ## 尚未实现的验证
 
-challenge、origin、RP ID 匹配、计数器判断、ES256 以外的 COSE 算法/曲线/参数、证书链、可信根及最终认证判断均为 `NOT_IMPLEMENTED`。P5 单独增加 ES256 密码学能力，覆盖范围见下表。官方认证套件和真实设备互操作证据尚未建立。
+P3 结果仅表达结构检查。P5 增加 ES256 密码学能力，P6 增加下述 Assertion 和 RP 策略入口。ES256 以外的 COSE 算法/曲线/参数、证书链与可信根尚未实现。官方认证套件和真实设备互操作证据尚未建立。
 
 ## 测试数据来源与许可
 
@@ -174,3 +174,29 @@ P5 复用 MoonCrypt 0.4.16 的密码学实现。P4 的参数结果和 `NotPerfor
 ### P5 独立测试向量
 
 永久测试包含固定提交 `65ca494727a52944c204441c860b039e6786b99b` 的完整 Wycheproof P-256/SHA-256/P1363 262例、DER 484例、NIST CAVP P-256/SHA-256 SigVer 15例、P-256 PKV 12例和 SHA-256 公开向量。Wycheproof 使用 Apache-2.0，NIST 来源按站点版权政策注明归属。只提取公开公钥、消息、签名和预期结果。W3C §16.2/§16.4/§16.5 的原始字节继续保留，原始 DER 签名直接交给 Assertion 入口验证。精确摘要、文件、测试数量与执行结果见新增向量声明和 DEVELOPMENT。[Wycheproof raw 固定文件](https://github.com/C2SP/wycheproof/blob/65ca494727a52944c204441c860b039e6786b99b/testvectors_v1/ecdsa_secp256r1_sha256_p1363_test.json) · [DER 固定文件](https://github.com/C2SP/wycheproof/blob/65ca494727a52944c204441c860b039e6786b99b/testvectors_v1/ecdsa_secp256r1_sha256_test.json) · [NIST CAVP ECDSA](https://csrc.nist.gov/projects/cryptographic-algorithm-validation-program/digital-signatures) · [NIST CAVP SHS](https://csrc.nist.gov/projects/cryptographic-algorithm-validation-program/secure-hashing) · [NIST 版权政策](https://www.nist.gov/copyrights-disclaimers)
+
+## Phase 6 Authentication Assertion 与 RP 策略
+
+`verify_webauthn_es256_assertion` 实现固定 REC 中与本次请求、可信账户凭证记录和 RP 策略有关的验证步骤。浏览器 API 调用、传输外层响应检查、账户数据库、挑战生命周期和最终事务提交由调用方完成，整体部署流程为 `PARTIAL`。
+
+| 固定规范条款 | 状态 | P6 行为 |
+| --- | --- | --- |
+| §7.2 steps5–6；§5.4.3 | `IMPLEMENTED` | credential ID 匹配可信记录及非空 allowCredentials，存在的 userHandle 匹配账户，Discoverable 模式要求 handle，1–64字节句柄范围 |
+| §7.2 steps8–11；§5.8.1；RFC 4648 §3、§5 | `IMPLEMENTED` | 复用原始 JSON 解析，严格 type=webauthn.get，非空挑战、无 padding 规范编码、安全字节比较 |
+| §7.2 step12；§13.4.8–13.4.9；RFC 6454 §5–6 | `IMPLEMENTED` | 精确 Origin allowlist，保留 scheme/host/port 和原始字符串差异，无隐式子域名信任或归一化 |
+| §7.2 steps13–14；§5.8.1 | `IMPLEMENTED` | 默认禁用跨域，topOrigin 存在时验证独立列表并要求 crossOrigin=true，允许获授权的 true+缺省 topOrigin |
+| §7.2 step15；§4 RP ID 定义 | `IMPLEMENTED` | 对可信 ASCII domain RP ID 原文 UTF-8 SHA-256，安全比较固定32字节 rpIdHash，拒绝 scheme/port/path 等配置 |
+| §7.2 steps16–17 | `IMPLEMENTED` | UP 必需，UV Required 时强制，Preferred/Discouraged 接受 UV=false，结果返回真实 flags |
+| §6.1.3；§7.2 steps18–19 | `IMPLEMENTED` | 复用 BS⇒BE 结构检查，已知历史 BE 必须一致，成功后返回当前 BS，未知 BE 保留未知 |
+| §6.5.5；§7.2 steps20–21 | `IMPLEMENTED` | P5 原始 DER 验签，消息为原始 authData 与 SHA256(原始 clientDataJSON) 拼接 |
+| §6.1.1；§7.2 step22 | `IMPLEMENTED` | NotSupported/Advanced/NonIncreasing，默认 ReportOnly，显式 Reject，无效签名先于计数器评估 |
+| §7.2 step23 | `IMPLEMENTED` | 当前 RP 策略忽略扩展语义，已解析的 ED Map 保留并参与原始签名输入 |
+| §7.2 steps24–25；任务约定的状态边界 | `PARTIAL` | 仅成功时返回 count/BS 更新建议，ReportOnly 使用计数高水位，实际事务、CAS、挑战消费和额外安全检查由调用方完成 |
+| §7.2 step24.3 | `NOT_IMPLEMENTED` | uvInitialized 生命周期与附加认证因素授权由调用方管理，当前更新模型仅含 count、BE/BS |
+| §13.4.3 | `PARTIAL` | 核验预期挑战匹配并拒绝空值，随机性、建议至少16字节的熵来源、过期和一次性存储属于调用方 |
+| §6.1 flags | `IMPLEMENTED` | P6 严格拒绝 AT 与非零 RFU，这是新增验证层策略，P3 结构入口保留自身范围 |
+| §10.1.1 AppID、其他算法和注册信任验证 | `NOT_IMPLEMENTED` | 本入口固定 ES256 和 expected RP ID hash，不执行旧式 AppID hash 分支 |
+
+RP ID 的 ASCII label/长度检查只定义本阶段的配置支持范围。域名可注册性、PSL、IDNA 和调用方的 RP 权限仍须在可信配置层核验。Origin 精确列表可显式允许 related origins 和已授权的原生应用标识，不建立 Origin 与 RP ID 的字符串后缀规则。[WebAuthn §7.2](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-verifying-assertion) · [§13.4.3](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-cryptographic-challenges) · [§13.4.8](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-code-injection-attacks) · [§13.4.9](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-validating-origin) · [RFC 6454 §5](https://www.rfc-editor.org/rfc/rfc6454.html#section-5)
+
+P6 三个官方集成测试复用原有 W3C §16.2、§16.4、§16.5 字节和原始 DER，账户记录与策略属于项目测试上下文。另有 Node.js/OpenSSL 在仓库外生成的44组固定合成签名，明确作为项目合成数据。真实设备与浏览器矩阵的状态为 `NOT_PERFORMED`，详见互操作记录。[向量来源与许可](../webauthn/CRYPTO-VECTORS-NOTICE.md) · [设备互操作](ASSERTION-INTEROP.md)

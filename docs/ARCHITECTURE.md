@@ -2,7 +2,7 @@
 
 ## 阶段状态
 
-截至 2026-11-12，Phase 1 提供 MoonBit `base64url` 与 `bytereader` 包，Phase 2 提供 `cbor` 包，Phase 3 在 `webauthn` 包提供 ClientDataJSON、AuthenticatorData 和 AttestationObject 结构解析，attStmt 支持 Map/Array。Phase 4 增加 ES256 COSE 参数验证，Phase 5 增加 P-256 点导入、SHA-256、raw ES256 验签与 assertion 签名消息构造。模块身份为 `ksuserkqy/moonpasskey_lab@0.1.0`，默认目标为 `wasm`。`cmd/main` 输出 `Hello`，协议分析 CLI 与完整 RP 验证流程待实现。
+截至 2026-11-12，Phase 1 提供 MoonBit `base64url` 与 `bytereader` 包，Phase 2 提供 `cbor` 包，Phase 3 在 `webauthn` 包提供 ClientDataJSON、AuthenticatorData 和 AttestationObject 结构解析，attStmt 支持 Map/Array。Phase 4 增加 ES256 COSE 参数验证，Phase 5 增加 P-256 点导入、SHA-256、raw ES256 验签与 DER assertion 签名入口。Phase 6 增加 ES256 Assertion 的 RP 策略、凭证与账户绑定、计数器风险及状态更新建议。模块身份为 `ksuserkqy/moonpasskey_lab@0.1.0`，默认目标为 `wasm`。`cmd/main` 输出 `Hello`，协议分析 CLI 待实现。Core 验证调用方提供的可信配置、账户记录和认证字节，挑战生命周期、数据库事务和浏览器调用由上层管理。
 
 ## 实际目录
 
@@ -45,6 +45,13 @@ moonpasskey-lab/
 │   ├── cose_key.mbt
 │   ├── cose_key_test.mbt
 │   ├── crypto.mbt
+│   ├── assertion_types.mbt
+│   ├── assertion_policy.mbt
+│   ├── assertion.mbt
+│   ├── assertion_fixtures_test.mbt
+│   ├── assertion_policy_test.mbt
+│   ├── assertion_test.mbt
+│   ├── assertion_w3c_test.mbt
 │   ├── crypto_test.mbt
 │   ├── crypto_der_test.mbt
 │   ├── crypto_vectors_test.mbt
@@ -66,6 +73,7 @@ moonpasskey-lab/
 │   ├── THREAT_MODEL.md
 │   ├── SPEC_MAPPING.md
 │   ├── LIMITATIONS.md
+│   ├── ASSERTION-INTEROP.md
 │   └── DEVELOPMENT.md
 ├── .githooks/
 ├── .github/workflows/
@@ -78,7 +86,7 @@ moonpasskey-lab/
 
 | 层 | 职责 | 当前状态 |
 | --- | --- | --- |
-| MoonBit Core | 字节转换、结构解析、规则、密码学验证、分析报告 | 已实现基础包、有界 CBOR、协议结构、ES256 参数/P-256 点验证、SHA-256 与 raw 验签，RP 策略与分析报告待实现 |
+| MoonBit Core | 字节转换、结构解析、规则、密码学验证、分析报告 | 已实现基础包、有界 CBOR、协议结构、ES256 密码学与 Assertion RP 策略，分析报告待实现 |
 | CLI | 文件与参数输入、调用 Core、报告输出、退出码 | 当前只有 Hello 示例 |
 | Web Dashboard | 输入、协议树、字节视图、展示 Core 结果 | 规划 Vue 3 + TypeScript + Vite |
 | 测试基础设施 | 单元测试、集成测试、正负样本、互操作和回归 | 基础包、CBOR、协议解析黑盒测试及跨包集成测试；设备互操作尚未验证 |
@@ -210,13 +218,43 @@ Raw 验签先检查恰好 64 字节，再检查 `1 <= R,S < n`，R/S 按固定 3
 
 WebAuthn §6.5.5 规定 authenticator 的 ES256 wire 签名采用 ASN.1 DER。assertion 入口复用 MoonCrypt ASN.1 解析器，限制编码为 8 至 72 字节，严格检查一个 SEQUENCE 中恰好两个最短、非负 INTEGER，并要求完整消费输入。非最短长度、indefinite 长度、冗余符号零与负数均返回 `InvalidSignatureEncoding`。必要的正数符号零被移除，32 字节以内的短整数左补零，得到后端所需的 raw64。零、超过 32 字节的正数幅值或不小于群阶的 R/S 返回 `InvalidSignatureScalar`。通用 `verify_es256_signature` 继续接收 COSE raw64 签名。[WebAuthn §6.5.5](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-signature-attestation-types)
 
+### ES256 Assertion 与 RP 策略（P6）
+
+`verify_webauthn_es256_assertion(request, credential, policy, limits?)` 返回 `Result[AssertionVerificationResult, AssertionVerificationError]`。实现分为 `assertion_types.mbt` 的公开数据模型、`assertion_policy.mbt` 的配置与客户端/身份检查、`assertion.mbt` 的认证器数据、验签与计数器流程。它复用 P3 解析、P5 DER 验签、已有 Base64URL 和 MoonCrypt 的安全字节比较。[WebAuthn §7.2](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-verifying-assertion)
+
+| 类型 | 输入与职责 |
+| --- | --- |
+| `AssertionVerificationRequest` | 原始 clientDataJSON、authenticatorData、DER signature、解码后的 credential ID、可选 userHandle，以及可信的本次 expected challenge 与账户识别模式 |
+| `AssertionCredentialRecord` | 调用方从已选账户取得的可信 credential ID、账户 userHandle、`ValidatedEs256PublicKey`、历史 signCount 和可选 backupEligible |
+| `AssertionVerificationPolicy` | 精确 origin/topOrigin/credential ID 允许列表、可信 RP ID、UV 要求、跨域开关和 counter 风险策略 |
+| `AssertionVerificationResult` | 原始字节与范围仍可追溯的客户端/认证器解析结果、counter 风险状态，以及凭证状态更新建议 |
+| `AssertionVerificationError` | 字段 context、可选原始字节 offset、配置/身份/策略/计数器错误及原样包装的 `ParseError` 或 `CryptoError` |
+
+策略构造器的默认值为 UV `Preferred`、跨域关闭、counter `ReportOnly`，topOrigin 与 credential ID 允许列表为空。Origin 必须由调用方显式配置。非空 credential ID 列表对应 `allowCredentials`，响应 ID 同时匹配列表与可信记录。`Identified` 模式允许响应省略 userHandle，存在时必须匹配账户句柄。`Discoverable` 模式要求响应带有匹配的句柄，账户查找由调用方在验证前完成。
+
+验证按配置与预算、凭证身份、客户端 JSON 与策略、authenticatorData 与策略、DER 签名、counter 风险、状态建议的顺序执行。客户端 `type` 必须为 `webauthn.get`。Challenge 要求预期与收到值均非空，复用 Base64URL 检查字符、末组位及规范编码，并拒绝 padding。收到的字符串必须等于预期字节的无 padding 编码，解码字节也通过 `@spec.eq` 比较。该比较同样用于 RP ID hash、credential ID 与 userHandle，内容比较读取完整等长输入。
+
+Origin 和 topOrigin 按配置原文精确匹配，允许合法 Unicode 或原生客户端 origin 字符串。配置字符串先检查 UTF-16 配对与 UTF-8 字节预算，避免固定工具链编码器对未配对 surrogate 的跨目标差异。`crossOrigin=true` 要求显式开启跨域。topOrigin 存在时还要求 crossOrigin 显式为 true，并匹配独立顶层允许列表。允许跨域时 topOrigin 仍可省略。[WebAuthn §5.8.1、§7.2、§13.4.9](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#dictdef-collectedclientdata)
+
+RP ID 配置支持 ASCII 域名标签及 localhost，每个标签1至63字符，总长度不超过253，拒绝空标签、首尾连字符、末尾点及 scheme/port/path 等 URL 字符。配置原文大小写保留，使用 `SHA256(UTF8(expected_rp_id))` 与32字节 rpIdHash 比较。该配置语法子集不执行 Public Suffix List、IDNA 或 origin 与 RP ID 的域名授权推断，注册与浏览器适用性由调用方保证。§10.1.1 AppID 扩展的特殊哈希路径未实现，本入口只验证配置的 RP ID 哈希。[WebAuthn §10.1.1](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-appid-extension)
+
+Assertion 要求 UP=true，UV 仅在 `Required` 时必须为 true，`Preferred` 与 `Discouraged` 保留实际 UV 供调用方使用。BS⇒BE 继续由解析器检查，已登记 BE 存在时必须与当前 BE 一致。P6 严格拒绝 AT 和非零 RFU 位，P3 通用结构解析仍保留其原有行为。ED 输出经过既有预算与 CBOR 结构校验，当前 RP 按 §7.2 step23 选择忽略扩展语义，并将原始值保留在结果中。[WebAuthn §6.1、§6.1.3、§7.2](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-authenticator-data)
+
+`CounterStatus` 分为 `NotSupported`（0→0）、`Advanced`（新值更大）和 `NonIncreasing`（至少一值非零且新值不增）。签名通过后才评估 counter。`ReportOnly` 返回风险并建议保留历史最大计数，`Reject` 返回 `CounterNonIncreasing`。非递增只能作为异常信号。成功的 `AssertionCredentialUpdate` 保存旧计数、旧 BE、建议计数与当前 BS，已存 BE 为 `None` 时仍保留 `None`，避免推断未知注册属性。[WebAuthn §6.1.1、§7.2](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-sign-counter)
+
+JSON 和 authenticatorData 分别复用同一个 `@cbor.Limits` 配置。原始字段、预期 challenge、credential ID、userHandle 与公钥编码在额外处理前受输入预算检查，允许列表项数受 `max_array_items` 约束，配置字符串受 `max_string_bytes` 约束。Challenge 另受 Base64URL 固定1 MiB二进制上限约束，credential ID 为1至1023字节，账户与响应 userHandle 为1至64字节，DER 签名继续由 P5 限制为8至72字节。
+
+配置错误没有输入 offset。客户端语义错误定位到对应 JSON value token 的原始字节起点，authenticatorData 错误定位到其字段范围。包装的解析错误保留内层 offset 与 context。只有完整成功结果包含更新建议。挑战生成、熵、有效期、一次性消费及凭证持久化由调用方管理，建议在事务或 revision/CAS 中重新核对历史状态、原子消费挑战并提交更新。[WebAuthn §13.4.3](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-cryptographic-challenges)
+
+§7.2 step24.3 的 `uvInitialized` 生命周期及初始化时可能需要的额外认证因子由调用方实现；本更新建议只覆盖 counter 与 BE/BS。部署具有额外安全检查时应先完成这些检查。真实设备互操作的执行状态与可复现步骤见独立记录。[WebAuthn §7.2](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-verifying-assertion) · [设备互操作记录](ASSERTION-INTEROP.md)
+
 ## 后续核心模块职责
 
 | 模块 | 计划契约 |
 | --- | --- |
 | COSE 扩展 | 现有 ES256 参数入口以外的算法、类型和曲线需单独实现与测试 |
 | Cryptography 扩展 | 其他算法、attestation 签名与证书链需要对应规范、后端调查及独立测试 |
-| Security rules | 每条规则记录标准条款、上下文、证据和测试 |
+| Security rules 扩展 | P6 之外的算法、扩展语义和业务规则需要独立标准依据、策略与测试 |
 | Analysis/report | 组合解析、验证和 unsupported 状态，产生可追溯结果 |
 
 对 `clientDataJSON` 的 SHA-256 必须使用原始输入字节。结构解析、签名验证、信任评估和认证结论需要分别记录状态。CTAP2 canonical CBOR 策略应在对应协议上下文应用。[WebAuthn Level 3 §6–7](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/)

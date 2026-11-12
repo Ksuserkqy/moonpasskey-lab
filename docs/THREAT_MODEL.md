@@ -2,7 +2,7 @@
 
 ## 范围与信任边界
 
-Phase 1 的入口是调用方提供的 `StringView` 和 `BytesView`，按攻击者可控数据处理。当前资产包括进程可用性、输入字节完整性、读取位置和错误信息的准确性。Core 负责有界转换和读取，调用方负责获取输入及处理公开 Result。
+基础包的入口是调用方提供的 `StringView` 和 `BytesView`，按攻击者可控数据处理。P6 另区分不可信 Assertion 响应与可信的预期 challenge、账户凭证记录和 RP 策略。资产包括进程可用性、原始字节完整性、身份绑定、策略结果和状态更新的准确性。Core 负责有界验证，调用方负责可信上下文、输入获取和处理公开 Result。
 
 当前实现依赖 MoonBit 运行时、不可变 Bytes/BytesView 语义和标准库严格 Base64 解码器。固定大小限制约束每次 Base64URL 操作，调用方的并发次数、文件读取预算和进程级资源管理仍需在未来 CLI/服务入口落实。
 
@@ -30,10 +30,34 @@ Phase 1 的入口是调用方提供的 `StringView` 和 `BytesView`，按攻击�
 - `read_u32_be` 在 UInt 域组装，覆盖 `0..4294967295`。
 - Base64URL 解码前完成输入与预期输出大小检查，异常通过 Result 交给调用方。
 
-## 后续阶段的安全边界
+## Assertion 验证的安全边界
 
-WebAuthn 验证还需要 challenge、origin、RP ID、UP/UV 等 flags、签名与 attestation 信任评估。后续报告必须明确每一步的执行状态和依据。原始 clientDataJSON 字节需要保留并用于哈希。WebAuthn 上下文需要额外强制省略 padding。[WebAuthn Level 3 §3、§7](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/)
+P6 的统一入口验证 ES256 authentication assertion 的 challenge、Origin、RP ID hash、身份绑定、UP/UV、BE/BS、DER 签名及计数器风险。它接受可信的服务器挑战、RP 配置和已登记账户凭证记录。外层响应类型检查、账户查询、服务端会话和持久化由调用方负责。原始 clientDataJSON 和 authenticatorData 进入 P5 签名接口。[WebAuthn Level 3 §7.2](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-verifying-assertion)
 
 Phase 1 提出的 CBOR 输入、嵌套深度、重复键、截断和不支持类型要求已在 Phase 2 的有界解码器中实现，并通过独立的 Generic 与 Ctap2Canonical 编码策略执行对应检查。CBOR 的当前支持子集、精确资源预算、语义键与错误定位依据见 ARCHITECTURE.md、LIMITATIONS.md 和 SPEC_MAPPING.md。
 
-WebAuthn 字段安全规则、密码学验证和分析报告仍待对应协议模块实现。ByteReader 本身通过视图读取已有数据，整体文件大小和并发预算由相应入口及调用方设置。
+ByteReader 本身通过视图读取已有数据，整体文件大小、并发次数和进程资源预算由调用层设置。分析报告、其他算法、注册信任评估与真实设备互操作仍需对应证据。
+
+## P6 攻击面与控制
+
+| 风险 | P6 控制 | 调用方责任 |
+| --- | --- | --- |
+| 挑战替换、编码歧义 | 严格无 padding Base64URL、非空、规范表示与字节比较 | 从可信会话取出预期值，使用安全随机数并确保足够熵 |
+| 重放旧响应 | 与本次预期 challenge 精确匹配 | 挑战有效期、一次性存储和原子消费 |
+| 恶意 Origin、子域名、端口伪装 | 显式精确 Origin allowlist | 保护所有允许的 Origin，禁止在其中运行不可信代码 |
+| 跨域 iframe 冒用 | 默认禁用跨域，存在 topOrigin 时验证顶层 allowlist 和字段关系 | 按业务明确授权嵌入来源 |
+| RP ID 混淆 | 拒绝当前支持范围外的 RP 配置，对原文 UTF-8 SHA-256 后安全比较 | 可信配置来源、域名授权、IDNA 和 public suffix 检查 |
+| 凭证或账户替换 | credential ID 与可信记录及非空 allowCredentials 匹配，userHandle 条件匹配 | 账户所属关系、discoverable 查询及账户状态检查 |
+| 缺少用户参与或验证 | UP 必需，Required 时 UV 必需，结果保留实际 flags | 按业务选择 UV 要求 |
+| 备份状态误判 | 已知 BE 与历史记录一致，BS⇒BE，BS 可变化 | 决定备份状态的业务含义 |
+| 签名篡改和错误消息构造 | 严格 DER，原始 authData 与原始 JSON 哈希，复用已验证公钥 | 可信注册公钥和完整传输数据 |
+| 计数器不递增 | 明确报告 NonIncreasing，默认 ReportOnly，显式 Reject 才拒绝 | 根据风险策略处理，结合其他证据判断异常 |
+| 并发更新覆盖 | 成功结果提供观察值、历史计数和更新建议，保留计数高水位 | 使用事务或记录 revision/CAS，冲突后重新评估并原子消费挑战 |
+
+计数器异常可能来自克隆、故障或请求乱序。`NonIncreasing` 仅表达计数关系，不能确定设备被克隆。ReportOnly 成功时建议保存 `max(stored, received)`，同时保留实际 received 值。历史 BE 未知时，更新建议继续保存未知状态，观察值由已验证的 flags 返回。[WebAuthn §6.1.1](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-sign-counter) · [§6.1.3](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-credential-backup)
+
+更新建议中的历史计数与 BE 只帮助识别读取快照。计数为零或 BS 改变时，两个请求仍可能具有相同计数快照，所以存储层还需要记录版本或事务隔离。调用方必须将挑战消费与凭证状态更新放在合适的原子边界中。验证函数不读取数据库或时钟，无法判断调用方是否提供了已经消费或过期的挑战。[WebAuthn §13.4.3](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-cryptographic-challenges)
+
+P6 的严格策略拒绝 Assertion 中的 AT 和非零 RFU。扩展输出在有界结构解析后按 RP 策略忽略并保留，调用方使用依赖扩展结果的业务时应增加对应语义验证。原有结构解析入口继续保留自己的兼容性契约。[WebAuthn §6.1](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-authenticator-data) · [§7.2 step23](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-verifying-assertion)
+
+MoonCrypt 0.4.16 的已知坐标范围缺口由 P4 强制前置检查覆盖。缺少独立第三方安全审计、运行时与编译器行为、尚未执行的真实设备测试和持续模糊测试仍属于当前证据边界。[当前限制](LIMITATIONS.md)
