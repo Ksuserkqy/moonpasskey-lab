@@ -1,0 +1,54 @@
+SYNTHETIC · actual CLI stdout · Node 24.18.0 / MoonBit 0.10.20+65efd5b93
+
+Valid ES256 assertion
+$ moon run cmd/main --target js --deny-warn -- --input submission/2026-moonbit-hackathon/demo/verify-valid.json
+command  "verify-assertion"
+status  "PASS"
+algorithm  "ES256"
+redacted  true
+publicKey  {"algorithm":"ES256","curve":"P-256","validated":true}
+crypto  {"format":"DER","signatureValid":true}
+clientData  {"type":"webauthn.get","challenge":{"redacted":true,"encodedLength":12},"origin":"https://rp.test","crossOrigin":false,"topOrigin":null}
+authenticatorData  {"rpIdHash":"-wzrYG4HT_Czv9YrnDzimTB1YeEcGdr8D8kazLmcUe4","length":37,"signCount":0,"flags":{"up":true,"uv":false,"be":false,"bs":false,"at":false,"ed":false,"rfu":0}}
+counter  {"status":"NOT_SUPPORTED","stored":0,"received":0}
+credentialUpdate  {"signCount":0,"backupEligible":null,"backupState":false,"previousSignCount":0}
+Checks
+  json  "PASS"
+  authenticator_data  "PASS"
+  public_key  "PASS"
+  identity  "PASS"
+  challenge  "PASS"
+  origin  "PASS"
+  cross_origin  "PASS"
+  rp_id_hash  "PASS"
+  user_presence  "PASS"
+  user_verification  "PASS"
+  backup  "PASS"
+  signature  "PASS"
+  counter  "NOT_SUPPORTED"
+
+Exit 0
+
+Malformed authenticator bytes
+$ moon run cmd/main --target js --deny-warn -- --input /tmp/moonpasskey-truncated.json
+command  "authenticator-data"
+status  "FAIL"
+algorithm  "ES256"
+redacted  true
+error  {"kind":"UnexpectedEnd","context":"authData.rpIdHash","offset":0}
+Checks
+  json  "NOT_PERFORMED"
+  authenticator_data  "FAIL"
+  public_key  "NOT_PERFORMED"
+  identity  "NOT_PERFORMED"
+  challenge  "NOT_PERFORMED"
+  origin  "NOT_PERFORMED"
+  cross_origin  "NOT_PERFORMED"
+  rp_id_hash  "NOT_PERFORMED"
+  user_presence  "NOT_PERFORMED"
+  user_verification  "NOT_PERFORMED"
+  backup  "NOT_PERFORMED"
+  signature  "NOT_PERFORMED"
+  counter  "NOT_PERFORMED"
+
+Exit 2

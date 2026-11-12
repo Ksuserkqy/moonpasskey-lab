@@ -15,15 +15,15 @@ version = "0.1.0"
 
 readme = "README.mbt.md"
 
-repository = ""
+repository = "https://github.com/Ksuserkqy/moonpasskey-lab"
 
 license = "Apache-2.0"
 
-keywords = [ ]
+keywords = [ "webauthn", "passkey", "es256", "cbor" ]
 
 preferred_target = "wasm"
 
-description = ""
+description = "WebAuthn / Passkey protocol analysis and ES256 verification toolkit"
 
 import {
   "moonbitstack/mooncrypt@0.4.16",

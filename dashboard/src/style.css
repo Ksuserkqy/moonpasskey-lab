@@ -67,6 +67,29 @@ a {
   min-height: 100vh;
   display: flex;
 }
+.evidence-notice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  padding: 14px 18px;
+  margin: 0 0 24px;
+  border: 1px solid #c8d8ec;
+  border-radius: 8px;
+  color: #365577;
+  background: #eef4fb;
+  line-height: 1.6;
+}
+.evidence-notice strong {
+  letter-spacing: 0.06em;
+  font-size: 11px;
+}
+.counter-explanation {
+  margin: 0;
+  padding: 0 20px 20px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
 .sidebar {
   width: 232px;
   flex-shrink: 0;
