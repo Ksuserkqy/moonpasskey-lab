@@ -89,7 +89,7 @@ node --experimental-strip-types scripts/check-interop-reports.mjs
 npm --prefix dashboard test
 ```
 
-检查器校验 schema、允许的状态、设备时间、provider来源、各层允许字段及历史文件摘要。检查通过说明报告结构与脱敏规则满足当前契约。真实设备是否实际执行仍需维护者和相应证据核对。[报告 schema](interop/report.schema.json) · [历史来源 sidecar](interop/safari-macos-2026-11-12.provenance.json)
+新Dashboard导出文件名以.redacted.json结尾。检查器默认扫描docs/interop中的这些文件，也可用命令末尾的实际文件路径校验Downloads中的导出。检查器校验 schema、允许的状态、设备时间、provider来源、各层允许字段及历史文件摘要。检查通过说明报告结构与脱敏规则满足当前契约。真实设备是否实际执行仍需维护者和相应证据核对。[报告 schema](interop/report.schema.json) · [历史来源 sidecar](interop/safari-macos-2026-11-12.provenance.json)
 
 ### 人工验收交接
 

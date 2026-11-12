@@ -149,7 +149,7 @@ Access 登录会话在外部 IdP 页面完成，回到原始固定测试 origin 
 4. 点击 `Verify with passkey`，由维护者完成系统身份验证。Dashboard 使用实际 `clientDataJSON`、`authenticatorData` 和 DER signature 的服务器验证结果展示检查状态。
 5. 查看实际返回 AuthenticatorData 的 UP、UV、BE、BS 和 signCount，记录 DER 验签、Core 最终状态、事务结果。UV Required 验收需要实际 UP=true、UV=true 和完整验证成功。请求配置中的 `required` 单独记录。[WebAuthn 注册与 assertion 验证](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-rp-operations)
 6. 在相同会话中再次发起新的 assertion，比较数据库 credential version、计数和备份状态更新，记录第二次真实结果。
-7. 点击 `Export safe report` 导出实际注册与 assertion 报告。维护者回传通过结构及白名单校验的文件，以及 HTTPS 访问、身份拒绝和所用版本的脱敏记录。合入 `docs/interop/` 的报告执行 `node scripts/check-interop-reports.mjs` 校验。[报告与矩阵](ASSERTION-INTEROP.md)
+7. 点击 `Export safe report` 导出实际注册与 assertion 报告。维护者回传通过结构及白名单校验的文件，以及 HTTPS 访问、身份拒绝和所用版本的脱敏记录。新导出以`.redacted.json`结尾，合入 `docs/interop/` 后执行 `node scripts/check-interop-reports.mjs` 校验；也可在命令后传入尚在Downloads中的实际文件路径。[报告与矩阵](ASSERTION-INTEROP.md)
 
 设备无法完成 UV、浏览器取消、超时、策略拒绝或其他错误时，保留真实状态和可脱敏错误原因。实际系统 provider 选择由维护者确认。提供者身份的独立证据需按报告结构单独记录。
 
