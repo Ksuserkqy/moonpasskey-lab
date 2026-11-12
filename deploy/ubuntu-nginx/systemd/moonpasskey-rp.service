@@ -1,0 +1,26 @@
+[Unit]
+Description=MoonPasskey Lab TEST ONLY reference RP
+After=network.target
+
+[Service]
+Type=simple
+User=moonpasskey
+Group=moonpasskey
+WorkingDirectory=/opt/moonpasskey/current
+EnvironmentFile=/etc/moonpasskey/reference-rp.env
+ExecStart=/opt/node-v24.18.0/bin/node /opt/moonpasskey/current/reference-rp/start.mjs
+UMask=0077
+Restart=on-failure
+RestartSec=5s
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/moonpasskey
+# Prevent this account from seeing the CA signing key or public-edge credentials.
+InaccessiblePaths=/etc/moonpasskey/tls/ca /etc/letsencrypt /etc/nginx/moonpasskey.htpasswd
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
