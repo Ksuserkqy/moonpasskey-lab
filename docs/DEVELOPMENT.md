@@ -500,4 +500,4 @@ Dashboard 的 npm ci、vue-tsc、5项测试和 Vite build 均通过。当前 mac
 
 ### 远程 CI 与设备证据
 
-CI 新增 Reference RP and concurrency 与 Vue dashboard 两个独立 job，并在四目标矩阵执行 CLI 入口测试。提交8f512cc3bb6540d5e1153b387fb4a9420b95b4f9 的六个 CI job 全部成功。逐项日志确认四目标各491项、CLI各7项、RP24项和Dashboard5项通过，固定 moonc/core0.10.20+65efd5b93。MoonBit矩阵使用Node24.22.2，RP/前端使用固定Node24.18.0。真实 Safari 页面已打开，维护者报告已完成系统流程，当前可见页面仍未显示登记记录，成功报告待核对，设备验收状态暂为 NOT_PERFORMED。[首轮 P7 CI](https://github.com/Ksuserkqy/moonpasskey-lab/actions/runs/43158292996)。[设备矩阵](ASSERTION-INTEROP.md)
+CI 新增 Reference RP and concurrency 与 Vue dashboard 两个独立 job，并在四目标矩阵执行 CLI 入口测试。提交8f512cc3bb6540d5e1153b387fb4a9420b95b4f9 的六个 CI job 全部成功。逐项日志确认四目标各491项、CLI各7项、RP24项和Dashboard5项通过，固定 moonc/core0.10.20+65efd5b93。MoonBit矩阵使用Node24.22.2，RP/前端使用固定Node24.18.0。随后维护者完成 Safari/macOS 平台 Passkey 注册与认证，13:02:59.977 CST 的实际 Dashboard 导出显示12项PASS、DER有效、UV/BE/BS=true、signCount0及Core最终PASS。provider按维护者选择记录，完整元数据与脱敏JSON见设备矩阵。[首轮 P7 CI](https://github.com/Ksuserkqy/moonpasskey-lab/actions/runs/43158292996)。文档收尾提交137e098的六项CI同样成功。[第二轮 P7 CI](https://github.com/Ksuserkqy/moonpasskey-lab/actions/runs/43158654028)[设备矩阵](ASSERTION-INTEROP.md)

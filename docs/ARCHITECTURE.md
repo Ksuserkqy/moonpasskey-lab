@@ -89,7 +89,7 @@ moonpasskey-lab/
 | MoonBit Core | 字节转换、结构解析、规则、密码学验证、分析报告 | 已实现基础包、有界 CBOR、协议结构、ES256 密码学、Assertion RP 策略与 analysis 脱敏报告 |
 | CLI | 文件与参数输入、调用 Core、报告输出、退出码 | cmd/main 调用 analysis.run_json，支持文本和 JSON |
 | Web Dashboard | 输入、flags、逐项验证与 counter 结果 | Vue 3 + TypeScript + Vite，同源调用参考 RP 的 MoonBit bridge |
-| 测试基础设施 | 单元测试、集成测试、正负样本、互操作和回归 | 基础包、CBOR、协议解析黑盒测试及跨包集成测试；设备互操作尚未验证 |
+| 测试基础设施 | 单元测试、集成测试、正负样本、互操作和回归 | 基础包、CBOR、协议解析和集成测试；P7 已验证 Safari/macOS 真实 Passkey，其他设备见矩阵 |
 
 CLI 和 Web Dashboard 共用 MoonBit analysis 接口。协议校验与安全规则归属 Core。Node 宿主实际加载编译得到的 CommonJS 产物，界面展示各步骤的状态和错误信息。
 

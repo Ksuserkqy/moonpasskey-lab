@@ -143,7 +143,7 @@ SHA-256 与签名消息构造消费调用方提供的原始字节 view。空 aut
 | 凭证与账户绑定 | `IMPLEMENTED` | credential ID 同时匹配可信记录和非空 allowCredentials，存在的 userHandle 匹配可信账户句柄 |
 | Discoverable 账户查找 | Core 外部责任 | 调用方先解析 userHandle 对应账户并选出可信记录，Core 要求句柄存在且匹配 |
 | Counter 风险与状态建议 | `IMPLEMENTED` | 区分0→0、递增与非递增，默认 ReportOnly，可显式 Reject，只有成功结果携带更新建议 |
-| 真实设备与浏览器互操作 | `NOT_PERFORMED` | 方案及执行矩阵见 ASSERTION-INTEROP.md |
+| 真实设备与浏览器互操作 | `PARTIAL` | P7 Safari/macOS 平台 Passkey 已完成，其他环境 NOT_PERFORMED，详见 ASSERTION-INTEROP.md |
 
 `AssertionVerificationPolicy::new` 默认 UV 为 `Preferred`、跨域关闭、counter 为 `ReportOnly`。Origin 列表必须非空并由可信调用方显式配置。允许列表使用完整字符串匹配，配置中写入的 scheme、大小写、端口、Unicode 和原生客户端 origin 字符串均保留。配置合法性检查只保证非空、有效 UTF-16 与字节预算，授权哪些 origin 由 RP 决定。
 
@@ -161,7 +161,7 @@ Counter 的 `NonIncreasing` 代表潜在风险，默认继续返回成功和风�
 
 `verify_webauthn_es256_assertion` 返回 `Err` 时没有状态建议，解析、配置、身份、策略、签名格式、签名不匹配与 counter 拒绝可分别识别。错误保留字段路径与适用的原始字节 offset。Core 只能匹配调用方提供的 outstanding challenge。调用方必须生成足够随机的 challenge，按 §13.4.3 建议至少16字节，并负责有效期、服务端存储与成功后的原子消费。并发 Assertion 可能乱序，提交建议前应通过事务或 revision/CAS 重读旧状态并协调挑战消费，避免重复使用与覆盖更新。[WebAuthn §13.4.3、§7.2](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-cryptographic-challenges)
 
-## 尚未实现的能力
+## 能力与剩余边界
 
 | 功能 | 当前状态 |
 | --- | --- |
@@ -172,7 +172,7 @@ Counter 的 `NonIncreasing` 代表潜在风险，默认继续返回成功和风�
 | 证书链、attestation 逐格式签名与信任验证 | `NOT_IMPLEMENTED` |
 | 文件分析 CLI、报告导出、退出码契约 | P7 已实现，文件整体读取先于 Core 限长，宿主需控制超大文件 |
 | Vue Dashboard 与 JS bridge | P7 已实现 Vue/Node/编译 JS Core，同源本地展示；浏览器直接 Wasm 集成尚未实现 |
-| 真实设备及浏览器互操作执行 | `NOT_PERFORMED`，复现步骤与矩阵见 ASSERTION-INTEROP.md |
+| 真实设备及浏览器互操作执行 | Safari/macOS 已取得真实 Core PASS，其他五组 NOT_PERFORMED，复现步骤与矩阵见 ASSERTION-INTEROP.md |
 | 持续集成测试流水线 | 已配置四目标检查、测试、构建、格式和接口验证，实际远程状态见对应 PR |
 | 模糊测试、性能基准 | 待建立 |
 

@@ -199,7 +199,7 @@ P5 复用 MoonCrypt 0.4.16 的密码学实现。P4 的参数结果和 `NotPerfor
 
 RP ID 的 ASCII label/长度检查只定义本阶段的配置支持范围。域名可注册性、PSL、IDNA 和调用方的 RP 权限仍须在可信配置层核验。Origin 精确列表可显式允许 related origins 和已授权的原生应用标识，不建立 Origin 与 RP ID 的字符串后缀规则。[WebAuthn §7.2](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-verifying-assertion) · [§13.4.3](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-cryptographic-challenges) · [§13.4.8](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-code-injection-attacks) · [§13.4.9](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-validating-origin) · [RFC 6454 §5](https://www.rfc-editor.org/rfc/rfc6454.html#section-5)
 
-P6 三个官方集成测试复用原有 W3C §16.2、§16.4、§16.5 字节和原始 DER，账户记录与策略属于项目测试上下文。另有 Node.js/OpenSSL 在仓库外生成的44组固定合成签名，明确作为项目合成数据。真实设备与浏览器矩阵的状态为 `NOT_PERFORMED`，详见互操作记录。[向量来源与许可](../webauthn/CRYPTO-VECTORS-NOTICE.md) · [设备互操作](ASSERTION-INTEROP.md)
+P6 三个官方集成测试复用原有 W3C §16.2、§16.4、§16.5 字节和原始 DER，账户记录与策略属于项目测试上下文。另有 Node.js/OpenSSL 在仓库外生成的44组固定合成签名，明确作为项目合成数据。P6 交付时真实设备矩阵为 NOT_PERFORMED，P7 Safari/macOS 的实际成功记录见互操作文档。[向量来源与许可](../webauthn/CRYPTO-VECTORS-NOTICE.md) · [设备互操作](ASSERTION-INTEROP.md)
 
 ## Phase 7 参考宿主与集成
 

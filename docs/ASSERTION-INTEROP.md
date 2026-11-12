@@ -2,18 +2,38 @@
 
 ## Phase 7 当前执行状态
 
-2026-11-12，已在这台 Mac 的 Safari 打开本地 Dashboard，参考 RP 已连接，原生 WebAuthn 注册入口可用。维护者报告已完成系统 Passkey 注册与认证，但当前读取的 Safari 页面仍显示未登记，成功报告尚待定位与核对。当前真实设备完整成功记录仍为 **NOT_PERFORMED**，取得实际 Core 结果后更新。自动化签名测试均标注为项目合成数据。
+2026-11-12 已完成 Safari/macOS 真实平台 Passkey 的测试注册与 Assertion。维护者完成系统注册和认证，页面显示两条测试注册 PASS 与一条 Assertion PASS。最终 Assertion 的12项检查通过，ES256/P-256 公钥有效、DER 签名 Valid，Core 最终 PASS。公开记录来自 Dashboard 的实际脱敏导出。
 
 | 环境 | 设备与软件 | Provider | 注册 | Assertion/Core |
 | --- | --- | --- | --- | --- |
-| Safari + macOS | Mac16,12，macOS 27.2.1 build26B131，Safari27.2 | 用户选择 iCloud Keychain / 平台 Passkey，待系统流程确认 | NOT_PERFORMED | NOT_PERFORMED |
+| Safari + macOS | Mac16,12，macOS 27.2.1 build26B131，Safari27.2 | iCloud Keychain / 平台 Passkey，按维护者选择记录 | PASS | PASS |
 | Safari + iOS | NOT_RECORDED | iCloud Keychain | NOT_PERFORMED | NOT_PERFORMED |
 | Chrome + Google Password Manager | NOT_RECORDED | Google Password Manager | NOT_PERFORMED | NOT_PERFORMED |
 | Chrome + Windows Hello | NOT_RECORDED | Windows Hello | NOT_PERFORMED | NOT_PERFORMED |
 | USB FIDO2 | NOT_RECORDED | NOT_RECORDED | NOT_PERFORMED | NOT_PERFORMED |
 | NFC FIDO2 | NOT_RECORDED | NOT_RECORDED | NOT_PERFORMED | NOT_PERFORMED |
 
-机型、系统和 Safari 版本来自本机只读系统元数据，完整设备认证结果尚待执行。RP ID 为 localhost，Origin 为 http://localhost:8787，服务监听127.0.0.1。默认 UV preferred、counter report-only。
+机型、系统和 Safari 版本来自本机只读系统元数据，provider 按维护者此前选择的 iCloud Keychain / 平台 Passkey 记录，未通过浏览器协议字段独立识别 provider。RP ID 为 localhost，Origin 为 http://localhost:8787，服务监听127.0.0.1。默认 UV preferred、counter report-only。
+
+
+### Safari/macOS 成功记录
+
+| 字段 | 实际值 |
+| --- | --- |
+| 测试时间 | 2026-11-12 13:02:59.977 CST，原始 capturedAt 为2026-11-12T05:02:59.977Z |
+| RP ID / Origin | localhost / http://localhost:8787 |
+| 请求 UV / 实际 UV | preferred / true |
+| UP / BE / BS | true / true / true |
+| AT / ED / RFU | false / false / 0 |
+| AuthenticatorData 长度 | 37字节 |
+| signCount | stored0，received0，NOT_SUPPORTED |
+| 公钥 / 签名 | ES256，P-256 validated，DER，signatureValid=true |
+| ClientData | webauthn.get，crossOrigin=false，topOrigin缺省，challenge只保留43字符长度 |
+| Core 最终结果 | PASS，12项检查PASS，counter为NOT_SUPPORTED |
+
+页面的 PASS 响应来自参考 RP 完成原子提交后的成功路径。两次测试注册与一次 Assertion 均来自维护者完成的真实 Safari 系统流程。尚未执行该设备的递增计数器测试、UV required 策略和其他平台矩阵。
+
+脱敏 JSON 的 SHA-256 为 0f27841c5fcf6d84927a7b53b66a9f6b24aa2fa0feb84f7caa711cd13311c9af。公开文件省略完整 credential ID、userHandle、挑战、公钥编码、原始响应和签名。[实际 Dashboard 导出](interop/safari-macos-2026-11-12.redacted.json)
 
 ## 复现步骤
 

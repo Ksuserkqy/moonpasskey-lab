@@ -1,0 +1,67 @@
+{
+  "application": "MoonPasskey Lab",
+  "developmentOnly": true,
+  "source": "assertion",
+  "capturedAt": "2026-11-12T05:02:59.977Z",
+  "device": {
+    "device": "Mac16,12 (Apple Silicon)",
+    "operatingSystem": "macOS 27.2.1 (26B131)",
+    "browser": "Safari 27.2",
+    "provider": "iCloud Keychain / platform Passkey (maintainer-selected)"
+  },
+  "configuration": {
+    "rpId": "localhost",
+    "origin": "http://localhost:8787",
+    "userVerification": "preferred",
+    "counterPolicy": "report-only"
+  },
+  "status": "PASS",
+  "algorithm": "ES256",
+  "checks": {
+    "json": "PASS",
+    "authenticator_data": "PASS",
+    "public_key": "PASS",
+    "identity": "PASS",
+    "challenge": "PASS",
+    "origin": "PASS",
+    "cross_origin": "PASS",
+    "rp_id_hash": "PASS",
+    "user_presence": "PASS",
+    "user_verification": "PASS",
+    "backup": "PASS",
+    "signature": "PASS",
+    "counter": "NOT_SUPPORTED"
+  },
+  "clientData": {
+    "type": "webauthn.get",
+    "challenge": {
+      "redacted": true,
+      "encodedLength": 43
+    },
+    "origin": "http://localhost:8787",
+    "crossOrigin": false,
+    "topOrigin": null
+  },
+  "authenticatorData": {
+    "length": 37,
+    "flags": {
+      "up": true,
+      "uv": true,
+      "be": true,
+      "bs": true,
+      "at": false,
+      "ed": false,
+      "rfu": 0
+    },
+    "signCount": 0
+  },
+  "crypto": {
+    "format": "DER",
+    "signatureValid": true
+  },
+  "counter": {
+    "status": "NOT_SUPPORTED",
+    "stored": 0,
+    "received": 0
+  }
+}

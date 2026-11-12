@@ -60,7 +60,7 @@
 - 新增本地 TEST ONLY Node/SQLite RP，安全随机挑战、会话绑定、时效、一次性消费和凭证 version CAS 同事务提交。
 - 新增真实多连接竞争测试，覆盖乱序计数、ReportOnly、Reject、BS/BE 与重放，并通过实际编译 Core 执行 HTTP 集成。
 - 新增 Vue Dashboard，调用浏览器原生 create/get，保留原始 clientDataJSON，显示实际 Core 结果并提供脱敏导出。
-- 增加独立前端与参考 RP CI，四目标增加 CLI 入口测试。设备互操作执行状态见专项记录。
+- 增加独立前端与参考 RP CI，四目标增加 CLI 入口测试。取得 Safari/macOS 真实平台 Passkey 的 Core PASS 与脱敏导出，其他环境按专项矩阵标记。
 
 ### 文档与仓库流程
 
