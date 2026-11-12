@@ -443,4 +443,6 @@ Safari/iCloud Keychain、Chrome/Google Password Manager、Chrome/Windows Hello�
 
 PR #6 的提交 `544ab1113914c0dfcffe2a55222991c5ff6b116f` 首轮四目标 CI 全部成功。逐个检查 job 和日志，确认固定 moonc/core `0.10.20+65efd5b93`、Node `v24.22.2`，四目标各443项通过、0失败，格式、接口、check/test/build/run 全部成功。[首轮四目标 CI](https://github.com/Ksuserkqy/moonpasskey-lab/actions/runs/43134523428)
 
-该轮没有 MoonBit 编译警告，但既有 setup-node v4.4.0 出现 Node20 runtime 和 punycode 弃用警告。按本任务的无 warning 验收要求，将其更新为官方 v6.5.0 的固定提交 `249970729cb0ef3589644e2896645e5dc5ba9c38`，实际 action.yml 声明 `using: node24`。Node 目标版本继续为24，MoonBit 固定版本继续沿用。修正后的最终提交将重新检查四目标和日志。[官方 v6.5.0 发布](https://github.com/actions/setup-node/releases/tag/v6.5.0) · [固定 Action manifest](https://github.com/actions/setup-node/blob/249970729cb0ef3589644e2896645e5dc5ba9c38/action.yml)
+该轮没有 MoonBit 编译警告，但既有 setup-node v4.4.0 出现 Node20 runtime 和 punycode 弃用警告。按本任务的无 warning 验收要求，将其更新为官方 v6.5.0 的固定提交 `249970729cb0ef3589644e2896645e5dc5ba9c38`，实际 action.yml 声明 `using: node24`。Node 目标版本继续为24，MoonBit 固定版本继续沿用。[官方 v6.5.0 发布](https://github.com/actions/setup-node/releases/tag/v6.5.0) · [固定 Action manifest](https://github.com/actions/setup-node/blob/249970729cb0ef3589644e2896645e5dc5ba9c38/action.yml)
+
+CI 修正提交 `0934cda88d622fe5cd69e07b1e8cf8b080a44f30` 的四目标全部成功，每个目标443项通过、0失败，格式、接口、check/test/build/run 全部通过。逐个核对日志的固定工具链和测试总数，原有 Node/punycode 弃用警告已消除，未发现 MoonBit Warning 或 GitHub warning annotation。后续纯文档收尾提交的最终状态记录在 PR #6。[无警告四目标 CI](https://github.com/Ksuserkqy/moonpasskey-lab/actions/runs/43135910750) · [Phase 6 PR](https://github.com/Ksuserkqy/moonpasskey-lab/pull/6)
