@@ -2,7 +2,7 @@
 
 ## Phase 7 当前执行状态
 
-2026-11-12，已在这台 Mac 的 Safari 打开本地 Dashboard，参考 RP 已连接，原生 WebAuthn 注册入口可用。系统 Passkey 注册与认证需要维护者完成。当前真实设备完整成功记录仍为 **NOT_PERFORMED**，等待实际注册和 Assertion 后更新。自动化签名测试均标注为项目合成数据。
+2026-11-12，已在这台 Mac 的 Safari 打开本地 Dashboard，参考 RP 已连接，原生 WebAuthn 注册入口可用。维护者报告已完成系统 Passkey 注册与认证，但当前读取的 Safari 页面仍显示未登记，成功报告尚待定位与核对。当前真实设备完整成功记录仍为 **NOT_PERFORMED**，取得实际 Core 结果后更新。自动化签名测试均标注为项目合成数据。
 
 | 环境 | 设备与软件 | Provider | 注册 | Assertion/Core |
 | --- | --- | --- | --- | --- |
