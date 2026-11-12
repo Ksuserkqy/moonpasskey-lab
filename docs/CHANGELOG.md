@@ -8,5 +8,6 @@
 - 默认 ReportOnly 报告非递增风险，显式 Reject 才将该风险作为失败。建议更新保留计数高水位、已知/未知 BE 与当前 BS，只在完整验证成功后返回。
 - 新增协议和策略正反回归、44个固定项目合成签名、三组 W3C 官方集成上下文。原有 P1–P5 测试继续保留，实际数量和四目标结果见开发记录。
 - 更新架构、标准映射、限制和威胁模型，增加真实设备测试步骤与 `NOT_PERFORMED` 矩阵。
+- CI 的 setup-node 固定到官方 v6.5.0 提交，使用 Node24 Action runtime，处理原有 Node20/punycode 弃用警告。
 
 P6 继续使用 MoonCrypt 0.4.16 和固定 MoonBit 0.10.20+65efd5b93，所选生产路径使用纯 MoonBit。调用方负责外层响应检查、可信账户查询、挑战随机性/有效期/一次性消费、事务或 CAS 状态提交、uvInitialized 与附加认证因素策略。AppID 特例、其他算法和注册信任验证继续留在当前支持范围之外。[开发记录](DEVELOPMENT.md) · [当前限制](LIMITATIONS.md)

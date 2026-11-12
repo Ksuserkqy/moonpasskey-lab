@@ -52,6 +52,7 @@
 - 新增 CounterStatus 与默认 ReportOnly/显式 Reject 策略，成功后返回保留历史计数高水位及当前 BS 的凭证更新建议。
 - 复用现有解析预算、Base64URL、P5 密码学和安全字节比较，增加字段路径、相对原始字节位置与可区分的失败类型。
 - 补充官方集成与固定合成签名回归，记录挑战生命周期、并发提交、扩展策略和真实设备 `NOT_PERFORMED` 状态。详细阶段记录见 [P6 变更记录](docs/CHANGELOG.md)。
+- CI 将 setup-node 固定到使用 Node24 runtime 的官方 v6.5.0 提交，以处理旧 Action 的弃用警告。
 
 ### 文档与仓库流程
 

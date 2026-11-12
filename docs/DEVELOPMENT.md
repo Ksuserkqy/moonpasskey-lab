@@ -441,4 +441,6 @@ moon run cmd/main --target TARGET --deny-warn
 
 Safari/iCloud Keychain、Chrome/Google Password Manager、Chrome/Windows Hello、USB/NFC FIDO2 四组实际互操作均为 `NOT_PERFORMED`。未记录设备版本或真实认证材料。可复现捕获步骤、原始数据字段和 Core 验证 adapter 见 [互操作步骤](ASSERTION-INTEROP.md)。本轮完成的是自动化验证和设备验证方案，整体交付状态为 `PASS_WITH_WARNINGS`。
 
-最终提交的四目标 GitHub Actions 状态将在推送和 PR 创建后核验并补入。
+PR #6 的提交 `544ab1113914c0dfcffe2a55222991c5ff6b116f` 首轮四目标 CI 全部成功。逐个检查 job 和日志，确认固定 moonc/core `0.10.20+65efd5b93`、Node `v24.22.2`，四目标各443项通过、0失败，格式、接口、check/test/build/run 全部成功。[首轮四目标 CI](https://github.com/Ksuserkqy/moonpasskey-lab/actions/runs/43134523428)
+
+该轮没有 MoonBit 编译警告，但既有 setup-node v4.4.0 出现 Node20 runtime 和 punycode 弃用警告。按本任务的无 warning 验收要求，将其更新为官方 v6.5.0 的固定提交 `249970729cb0ef3589644e2896645e5dc5ba9c38`，实际 action.yml 声明 `using: node24`。Node 目标版本继续为24，MoonBit 固定版本继续沿用。修正后的最终提交将重新检查四目标和日志。[官方 v6.5.0 发布](https://github.com/actions/setup-node/releases/tag/v6.5.0) · [固定 Action manifest](https://github.com/actions/setup-node/blob/249970729cb0ef3589644e2896645e5dc5ba9c38/action.yml)
