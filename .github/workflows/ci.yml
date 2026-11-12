@@ -60,7 +60,7 @@ jobs:
 
       - name: Verify generated public interfaces
         run: |
-          moon info
+          moon info --target "${{ matrix.target }}"
           git diff --exit-code -- '*.mbti'
 
       - name: Check
@@ -74,3 +74,60 @@ jobs:
 
       - name: Run existing entry point
         run: moon run cmd/main --target "${{ matrix.target }}" --deny-warn
+
+      - name: Test CLI entry point
+        env:
+          CLI_TARGET: ${{ matrix.target }}
+        run: node --test cmd/main/cli.test.mjs
+
+  reference-rp:
+    name: Reference RP and concurrency
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: '24.18.0'
+      - name: Install pinned MoonBit toolchain and core
+        run: |
+          curl --fail --show-error --silent --location --retry 3 \
+            --connect-timeout 20 --max-time 120 \
+            https://cli.moonbitlang.com/install/unix.sh \
+            --output "$RUNNER_TEMP/moonbit-install.sh"
+          bash "$RUNNER_TEMP/moonbit-install.sh" "$MOONBIT_INSTALL_VERSION"
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+      - name: Build actual MoonBit bridge
+        run: |
+          moon update
+          moon build analysis --target js --deny-warn
+      - name: Test lifecycle, real database races and Core HTTP integration
+        working-directory: reference-rp
+        run: npm test
+
+  dashboard:
+    name: Vue dashboard
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: dashboard
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: '24.18.0'
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+      - run: npm run build

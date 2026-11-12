@@ -1,206 +1,39 @@
-# Assertion interoperability procedure
+# 浏览器与真实设备互操作记录
 
-Phase 6 supplies a reproducible manual capture procedure and a MoonBit Core verification adapter. Real browser and device interoperability has status **NOT_PERFORMED**. The automated suites use published vectors and project-generated fixtures. No browser, operating-system authenticator, cloud passkey provider or physical security key was exercised for this document.
+## Phase 7 当前执行状态
 
-| Browser and authenticator | Actual OS / browser / device versions | Capture | Core verification |
-| --- | --- | --- | --- |
-| Safari with iCloud Keychain or a platform passkey | NOT_RECORDED | NOT_PERFORMED | NOT_PERFORMED |
-| Chrome with Google Password Manager | NOT_RECORDED | NOT_PERFORMED | NOT_PERFORMED |
-| Chrome with Windows Hello | NOT_RECORDED | NOT_PERFORMED | NOT_PERFORMED |
-| Browser with a USB or NFC FIDO2 security key | NOT_RECORDED | NOT_PERFORMED | NOT_PERFORMED |
+2026-11-12，已在这台 Mac 的 Safari 打开本地 Dashboard，参考 RP 已连接，原生 WebAuthn 注册入口可用。系统 Passkey 注册与认证需要维护者完成。当前真实设备完整成功记录仍为 **NOT_PERFORMED**，等待实际注册和 Assertion 后更新。自动化签名测试均标注为项目合成数据。
 
-Each completed run should record its date, operating-system version, browser version, selected provider or security-key model, transport, requested UV preference, actual parsed flags, Core test commands and results. A browser user-agent string supplies supplementary information. Record the actual software versions separately.
+| 环境 | 设备与软件 | Provider | 注册 | Assertion/Core |
+| --- | --- | --- | --- | --- |
+| Safari + macOS | Mac16,12，macOS 27.2.1 build26B131，Safari27.2 | 用户选择 iCloud Keychain / 平台 Passkey，待系统流程确认 | NOT_PERFORMED | NOT_PERFORMED |
+| Safari + iOS | NOT_RECORDED | iCloud Keychain | NOT_PERFORMED | NOT_PERFORMED |
+| Chrome + Google Password Manager | NOT_RECORDED | Google Password Manager | NOT_PERFORMED | NOT_PERFORMED |
+| Chrome + Windows Hello | NOT_RECORDED | Windows Hello | NOT_PERFORMED | NOT_PERFORMED |
+| USB FIDO2 | NOT_RECORDED | NOT_RECORDED | NOT_PERFORMED | NOT_PERFORMED |
+| NFC FIDO2 | NOT_RECORDED | NOT_RECORDED | NOT_PERFORMED | NOT_PERFORMED |
 
-## Capture a temporary test credential
+机型、系统和 Safari 版本来自本机只读系统元数据，完整设备认证结果尚待执行。RP ID 为 localhost，Origin 为 http://localhost:8787，服务监听127.0.0.1。默认 UV preferred、counter report-only。
 
-Use a fresh temporary test credential and an isolated test page. The following capture retains public protocol messages and the temporary account handle in browser memory. Authenticator private keys remain managed by the authenticator. Avoid production accounts and production authentication responses.
+## 复现步骤
 
-1. Start a local server in an empty directory.
+1. 按 REFERENCE-RP 构建真实 MoonBit JS bridge、Dashboard 并启动服务。
+2. 在同一台 Mac 的 Safari 打开 http://localhost:8787，确认 Local RP connected 且注册按钮可用。页面仅在 window.isSecureContext、PublicKeyCredential 和 navigator.credentials 可用时启用操作。
+3. 由维护者点击 Register test passkey 并完成系统 provider 的创建确认。服务生成32字节挑战，MoonBit 验证 none 注册绑定与公钥，成功后同事务消费挑战并登记记录。
+4. 由维护者点击 Verify with passkey 并完成系统认证。前端直接传输 response 的原始 clientDataJSON、authenticatorData、DER signature、rawId 和 nullable userHandle。
+5. 观察 Core 逐项状态、真实 flags、counter 与最终 PASS，再查看凭证 version 已更新。
+6. 在 Test reports 填写实际设备、操作系统、浏览器和 provider，导出脱敏报告，核对没有完整 credential ID、userHandle、challenge、公钥坐标、签名或原始认证字节。
 
-   ```sh
-   mkdir -p /tmp/moonpasskey-p6-interop
-   python3 -m http.server 8000 --bind 127.0.0.1 --directory /tmp/moonpasskey-p6-interop
-   ```
+默认 localhost HTTP 使用浏览器对 loopback potentially-trustworthy origin 的开发支持。移动设备上的 localhost 指向该移动设备自身，跨设备测试需要维护者配置可访问的受信任 HTTPS origin、匹配 RP ID 和受保护访问路径。当前服务限制 loopback 绑定。[Secure Contexts 固定版](https://www.w3.org/TR/2023/CRD-secure-contexts-20231110/#is-origin-trustworthy) · [参考 RP](REFERENCE-RP.md)
 
-2. Open `http://localhost:8000` in the browser under test. Open its developer console and confirm `window.isSecureContext` is `true` and `navigator.credentials` is available. WebAuthn permits the localhost HTTP development case. The expected origin for this run is exactly `http://localhost:8000`, and the RP ID is exactly `localhost`. [WebAuthn RP ID definition](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#rp-id)
+## 设备报告字段
 
-3. Paste the capture script below into the console. Complete the browser's registration and authentication prompts using the authenticator being evaluated. The default request identifies the temporary account before authentication and requests UV as `preferred`.
+每次完整运行需记录真实设备型号、OS/browser版本、选中的 provider、RP ID、origin、请求 UV 策略、实际 UP/UV/BE/BS/AT/ED/RFU、signCount、DER 验签结果、Core 最终状态、事务提交结果和测试时间。provider 名称由完成系统流程的维护者确认。软件版本来源与浏览器 user agent 分别记录。
 
-   ```js
-   const randomBytes = length => crypto.getRandomValues(new Uint8Array(length));
-   const base64url = buffer => {
-     const bytes = new Uint8Array(buffer);
-     let binary = "";
-     for (const byte of bytes) binary += String.fromCharCode(byte);
-     return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
-   };
+发布报告只保留脱敏字段。原始响应在前端和验证进程内存中处理，默认数据库为内存库。系统 provider 中的测试 Passkey 会持续存在，维护者可按测试数据保留安排管理。数据库持久化属于显式选项。
 
-   const rpId = location.hostname;
-   const origin = location.origin;
-   const userHandle = randomBytes(32);
-   const registrationChallenge = randomBytes(32);
-   const uv = "preferred";
+## 自动化互操作边界
 
-   const registration = await navigator.credentials.create({
-     publicKey: {
-       rp: { id: rpId, name: "MoonPasskey Lab interoperability" },
-       user: {
-         id: userHandle,
-         name: `temporary-${crypto.randomUUID()}@example.invalid`,
-         displayName: "Temporary interoperability account"
-       },
-       challenge: registrationChallenge,
-       pubKeyCredParams: [{ type: "public-key", alg: -7 }],
-       authenticatorSelection: { userVerification: uv },
-       attestation: "none",
-       timeout: 60000
-     }
-   });
-   if (registration === null || registration.type !== "public-key" ||
-       !(registration.response instanceof AuthenticatorAttestationResponse)) {
-     throw new Error("Expected a public-key registration response");
-   }
+Host HTTP 集成测试通过真实编译 Core 完成服务器挑战、none 测试登记、原始 DER Assertion、状态提交、重放与负例。测试 key 来自 Node/OpenSSL 临时生成，仅用于合成测试，私钥不写入仓库。三个额外竞争用例在不同 worker 中加载实际 Core，使用父进程已签名的公开请求，确认同挑战唯一提交、ReportOnly 乱序风险和 Reject 最新计数重评估。
 
-   const assertionChallenge = randomBytes(32);
-   const assertion = await navigator.credentials.get({
-     publicKey: {
-       rpId,
-       challenge: assertionChallenge,
-       allowCredentials: [{ type: "public-key", id: registration.rawId }],
-       userVerification: uv,
-       timeout: 60000
-     }
-   });
-   if (assertion === null || assertion.type !== "public-key" ||
-       !(assertion.response instanceof AuthenticatorAssertionResponse)) {
-     throw new Error("Expected a public-key assertion response");
-   }
-
-   const capture = {
-     capturedAt: new Date().toISOString(),
-     userAgent: navigator.userAgent,
-     expectedRpId: rpId,
-     expectedOrigin: origin,
-     userVerification: uv,
-     accountUserHandle: base64url(userHandle),
-     expectedChallenge: base64url(assertionChallenge),
-     registration: {
-       type: registration.type,
-       rawId: base64url(registration.rawId),
-       clientDataJSON: base64url(registration.response.clientDataJSON),
-       attestationObject: base64url(registration.response.attestationObject)
-     },
-     assertion: {
-       type: assertion.type,
-       rawId: base64url(assertion.rawId),
-       clientDataJSON: base64url(assertion.response.clientDataJSON),
-       authenticatorData: base64url(assertion.response.authenticatorData),
-       signature: base64url(assertion.response.signature),
-       userHandle: assertion.response.userHandle === null
-         ? null
-         : base64url(assertion.response.userHandle)
-     }
-   };
-   console.log(JSON.stringify(capture, null, 2));
-   ```
-
-4. Copy the emitted JSON into a local test record. Preserve every encoded field exactly. Record the provider or device selected during each prompt. Record failures, cancellations and unavailable provider choices with their actual browser error name and message.
-
-5. Check both response `type` values are `public-key` before constructing the Core request. Decode transport fields through the existing Base64URL package. The signature field contains the original authenticator signature. The Core Assertion API accepts strict ASN.1 DER for ES256. [WebAuthn signature formats](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-signature-attestation-types)
-
-The browser-generated random challenges in this isolated harness are fixed expectations for the local experiment. A deployed RP must generate challenges in its trusted server environment, retain ceremony state, enforce expiry and atomically consume each challenge after successful authentication. Core verifies the supplied expectation. [WebAuthn cryptographic challenges](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-cryptographic-challenges)
-
-The registration object supplies the public key and initial counter and BE values for this test. Phase 6's assertion verification consumes a trusted credential/account record. Production registration trust and account enrollment require their own completed process.
-
-## Verify the capture through MoonBit Core
-
-Place a local blackbox test in `webauthn/local_interop_test.mbt`. Populate the placeholders below from the captured JSON. Preserve a nullable assertion userHandle as `None` when its captured value is `null`. All other captured binary fields use `interop_decode`. The test uses the existing package imports and public APIs.
-
-```moonbit
-///|
-fn interop_decode(value : String) -> Bytes raise {
-  match @base64url.decode(value) {
-    Ok(bytes) => bytes
-    Err(error) => fail("capture transport encoding: \{error.to_repr()}")
-  }
-}
-
-///|
-test "local temporary browser assertion interoperability" {
-  let registration_raw_id = interop_decode("<registration.rawId>")
-  let registration_object = interop_decode("<registration.attestationObject>")
-  let account_handle = interop_decode("<accountUserHandle>")
-  let client = interop_decode("<assertion.clientDataJSON>")
-  let auth = interop_decode("<assertion.authenticatorData>")
-  let signature = interop_decode("<assertion.signature>")
-  let response_raw_id = interop_decode("<assertion.rawId>")
-  let expected_challenge = interop_decode("<expectedChallenge>")
-  let response_handle : BytesView? = None
-  // For a non-null capture use Some(interop_decode("<assertion.userHandle>")) instead.
-
-  let object = match @webauthn.parse_attestation_object(registration_object) {
-    Ok(value) => value
-    Err(error) => fail("registration structure: \{error.to_repr()}")
-  }
-  let attested = match object.auth_data.attested {
-    Some(value) => value
-    None => fail("registration lacks attested credential data")
-  }
-  assert_eq(attested.credential_id, registration_raw_id[:])
-  let parameters = match attested.validate_es256() {
-    Ok(value) => value
-    Err(error) => fail("registration COSE parameters: \{error.to_repr()}")
-  }
-  let public_key = match @webauthn.import_es256_public_key(parameters) {
-    Ok(value) => value
-    Err(error) => fail("registration public point: \{error.to_repr()}")
-  }
-  let record : @webauthn.AssertionCredentialRecord = {
-    credential_id: registration_raw_id,
-    user_handle: account_handle,
-    public_key,
-    sign_count: object.auth_data.sign_count,
-    backup_eligible: Some(object.auth_data.flags.be),
-  }
-  let request : @webauthn.AssertionVerificationRequest = {
-    client_data_json: client,
-    authenticator_data: auth,
-    signature,
-    credential_id: response_raw_id,
-    user_handle: response_handle,
-    expected_challenge,
-    user_identification: @webauthn.Identified,
-  }
-  let policy = @webauthn.AssertionVerificationPolicy::new(
-    "localhost", ["http://localhost:8000"],
-    user_verification=@webauthn.Preferred,
-    allowed_credential_ids=[registration_raw_id],
-  )
-  let verified = match @webauthn.verify_webauthn_es256_assertion(request, record, policy) {
-    Ok(value) => value
-    Err(error) => fail("browser assertion verification: \{error.to_repr()}")
-  }
-  assert_eq(verified.client_data.raw, client[:])
-  assert_eq(verified.authenticator_data.raw, auth[:])
-  assert_true(verified.authenticator_data.flags.up)
-  assert_eq(verified.client_data.origin, "http://localhost:8000")
-  assert_eq(verified.credential_update.credential_id, registration_raw_id[:])
-}
-```
-
-The exact MoonBit template above passed a compile-only check with toolchain `0.10.20+65efd5b93`, using `moon test <test-file> --target wasm --build-only --deny-warn`. This confirms its API and syntax compatibility. Real-device capture and verification remain **NOT_PERFORMED**. Replace every placeholder before executing the test.
-
-Run the populated test with the project-pinned toolchain for all four targets. Retain the exact commands, results and capture metadata in the run record.
-
-```sh
-moon test webauthn/local_interop_test.mbt --target native --deny-warn
-moon test webauthn/local_interop_test.mbt --target js --deny-warn
-moon test webauthn/local_interop_test.mbt --target wasm --deny-warn
-moon test webauthn/local_interop_test.mbt --target wasm-gc --deny-warn
-```
-
-Confirm that the original capture succeeds. Repeat verification after changing one expected challenge byte, removing the allowed origin, using another RP ID, and changing one signed authenticator-data byte. Record the specific `AssertionVerificationError` for every negative case. Inspect the actual UP, UV, BE, BS and counter status through the Core result. Signature verification covers the original client JSON bytes, including their property order and whitespace.
-
-For a second capture with UV `required`, set `uv = "required"` in the browser script and use `Required` in the Core policy. For a discoverable credential run, request `residentKey: "required"` during registration, omit `allowCredentials` during authentication, resolve the captured non-null userHandle to the temporary account, and use `Discoverable` in the Core request. The caller establishes that account-to-credential association before invoking Core. Cross-origin iframe testing additionally requires an intentionally configured embedding page, browser permissions policy and exact Core origin/top-origin allowlists. Record these configurations with the resulting capture. [WebAuthn account binding and assertion checks](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-verifying-assertion)
-
-The result's credential update remains a proposal. This harness keeps no persistent account store. A deployed caller must atomically recheck the credential snapshot, consume the challenge and apply accepted state updates. After the experiment, remove the temporary test credential from the selected provider or authenticator and handle the local capture according to the tester's retention policy.
+原有 W3C §16.2、§16.4、§16.5 官方字节与许可保留在既有测试中，官方向量与合成测试均无法替代真实物理设备证据。此前 P6 的手工捕获步骤和当时 NOT_PERFORMED 状态可在 P6 合并版本查看，P7 当前流程使用服务器挑战与事务存储。[P6 历史互操作文档](https://github.com/Ksuserkqy/moonpasskey-lab/blob/725c40ba10dc942498c96834e05d76ab644e5ac7/docs/ASSERTION-INTEROP.md) · [挑战生命周期](CHALLENGE-LIFECYCLE.md)
