@@ -25,11 +25,11 @@ MoonPasskey Lab 将有界解析、密码学验证、RP 策略与挑战生命周�
 
 ## 产品界面
 
-![Dashboard 本地浏览器测试首页](submission/2026-moonbit-hackathon/assets/dashboard.png)
+![Dashboard 本地浏览器测试首页](submission/2026-moonbit-hackathon/assets/dashboard.jpg)
 
 真实运行的本地界面。首页等待使用者注册测试 Passkey，尚未执行的检查显示 `NOT_PERFORMED`。
 
-![公开 SYNTHETIC 夹具的真实 Core 验证结果](submission/2026-moonbit-hackathon/assets/verification-result.png)
+![公开 SYNTHETIC 夹具的真实 Core 验证结果](submission/2026-moonbit-hackathon/assets/verification-result.jpg)
 
 上图来自公开 **SYNTHETIC** 夹具的实际 Core 调用。样本 UP=1、UV=0，preferred 策略满足要求，DER 签名有效；计数器 0→0 显示 `NOT_SUPPORTED`。真实设备历史记录另见设备矩阵。
 
@@ -47,7 +47,7 @@ MoonPasskey Lab 将有界解析、密码学验证、RP 策略与挑战生命周�
 前置环境为 Git、Bash、Node.js **24.18.0** 和 MoonBit **0.10.20+65efd5b93**。固定工具链安装命令见部署手册的环境准备章节，macOS / Linux 均应先核对 `node --version` 与 `moonc -v`。隔离 MoonBit 安装需设置对应 `MOON_HOME`。[安装说明](deploy/ubuntu-nginx/README.md)
 
 ```sh
-git clone --branch feat/p7-2-ubuntu-nginx-deployment https://github.com/Ksuserkqy/moonpasskey-lab.git
+git clone --branch main https://github.com/Ksuserkqy/moonpasskey-lab.git
 cd moonpasskey-lab
 moon update
 ./scripts/demo.sh
@@ -68,7 +68,7 @@ moon run cmd/main --target js -- --input submission/2026-moonbit-hackathon/demo/
 
 有效输入退出 0。无效签名、错误 challenge、错误 origin 和未满足 UV required 的输入退出 2。完整 CLI 契约还覆盖参数与文件读取错误。[CLI 文档](docs/CLI.md) · [夹具来源与预期](submission/2026-moonbit-hackathon/demo/README.md)
 
-![CLI 实际输出的浏览器排版截图，SYNTHETIC 输入](submission/2026-moonbit-hackathon/assets/cli-demo.png)
+![CLI 实际输出的浏览器排版截图，SYNTHETIC 输入](submission/2026-moonbit-hackathon/assets/cli-demo.jpg)
 
 ## Dashboard 演示
 

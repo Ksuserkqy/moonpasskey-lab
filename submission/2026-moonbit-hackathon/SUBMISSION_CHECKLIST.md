@@ -1,6 +1,6 @@
 # 参赛提交清单
 
-截至 2026-11-12，材料整理基线为 `582de40`。勾选表示已有对应仓库证据，实际报名和审核进度由维护者填写。规则依据和待确认口径见 [参赛资格核对](ELIGIBILITY.md)。
+截至 2026-11-12，功能冻结历史基线为 `582de40`，功能分支已验提交为 `85e63f3c48c43ae7d6303a6807697dcf4d91761e`。勾选表示已有对应仓库证据，实际报名和审核进度由维护者填写。规则依据和待确认口径见 [参赛资格核对](ELIGIBILITY.md)。
 
 ## 已有工程材料
 
@@ -8,6 +8,8 @@
 - [x] MoonBit 协议解析、ES256 验签和 Assertion 策略核心，配套 CLI、参考 RP 与 Dashboard。
 - [x] 已保存 631 个独立用例的基线记录，测试口径和范围见 [测试证据](TEST_EVIDENCE.md)。
 - [x] 固定旧提交 `6e4136b` 的六项远程 CI 成功记录。
+- [x] 功能分支 `85e63f3c48c43ae7d6303a6807697dcf4d91761e` 六项 CI success。[运行 43199498333](https://github.com/Ksuserkqy/moonpasskey-lab/actions/runs/43199498333)
+- [x] main `6947564bccd421bccef8e3337ff5bab4db6347cc` 六项 CI success。[运行 43204987911](https://github.com/Ksuserkqy/moonpasskey-lab/actions/runs/43204987911)
 - [x] Safari/macOS preferred 真实 Passkey 的脱敏报告与来源记录。
 - [x] Ubuntu22/Nginx 隔离实测、部署操作说明及回滚说明。
 - [x] 自有源码逐文件盘点，生产、测试、fixture 与工具分列。
@@ -17,7 +19,8 @@
 - [x] README、约 4 分 40 秒演示脚本、架构图及实际截图已提供。
 - [ ] 申报书由维护者亲自撰写，一页 Markdown，覆盖至少三个完整使用场景、目标、核心功能、路线和参考来源。
 - [ ] 维护者能解释 AI 辅助代码、技术取舍、测试证据和支持边界。
-- [x] 已提供分支 Actions 核对入口，最终 SHA 和六项检查结果可从堆叠 Draft PR 核对。
+- [x] 已核对 PR #8 合入 main，以及 PR #9 合入 P7.1 分支的实际状态与提交。[PR #8](https://github.com/Ksuserkqy/moonpasskey-lab/pull/8) · [PR #9](https://github.com/Ksuserkqy/moonpasskey-lab/pull/9)
+- [x] 已提供分支 Actions 核对入口，最终修订的完整 head SHA 与六项 CI 结果由新 PR 的验收说明保存。[分支 Actions](https://github.com/Ksuserkqy/moonpasskey-lab/actions?query=branch%3Afeat%2Fp7-2-ubuntu-nginx-deployment)
 - [x] 已核对材料 diff、本地文件链接、来源许可和脱敏输出。
 - [ ] Mooncakes 发布已完成并保留版本链接，或获得赛事组对此交付形式的明确答复。
 

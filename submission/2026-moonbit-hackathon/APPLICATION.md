@@ -24,9 +24,11 @@ MoonPasskey Lab 服务于正在接入 Passkey 的开发者、学习协议的学�
 
 | 使用者与需求 | 输入与操作 | 可检查的输出 |
 | --- | --- | --- |
-| 接入 Passkey 的开发者定位认证失败 | 把脱敏或合成请求保存为 JSON，经 CLI 执行 verify-assertion | 查看 challenge、Origin、UV 或签名的具体错误，按相同文件复现 |
+| 接入 Passkey 的开发者定位认证失败 | 使用受控保存的完整测试请求或公开合成夹具执行 `verify-assertion` | 查看 challenge、Origin、UV 或签名的具体错误，按相同文件复现 |
 | 协议学习者理解原始认证字节 | 在 Dashboard 导入公开夹具，查看 ClientData、AuthenticatorData 与逐项检查 | 将 UP/UV/BE/BS、DER 签名结果、计数器状态与策略要求对应起来 |
 | MoonBit 集成开发者验证宿主状态处理 | 启动 Reference RP，在本地完成测试注册和 Assertion，检查重复挑战及版本冲突用例 | 对照 Core 验证、事务提交和脱敏报告，复用安全解析与宿主集成接口 |
+
+脱敏报告用于展示、审计和复核，不保证保留完整验签所需的全部输入，不应直接作为完整验签请求。公开演示使用合成夹具，不得公开真实用户凭证、私钥或敏感认证材料。
 
 ## 已实现成果
 

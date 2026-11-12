@@ -21,7 +21,9 @@
 | 创建与审核时间 | 首页给出报名时间判定，章程描述审核通过后启动。仓库创建与首次提交时间见下表，审核时间尚无证据。须确认已完成代码在新项目方向的计算方式，不能从仓库日期自行推定通过。 |
 | 最终格式与故事 | 首页要求代码、README、测试和可复现演示说明。最终申报入口、材料格式、项目故事或演示视频的硬性要求须按十一月通知确认。 |
 
-## 可核验仓库事实
+## 历史仓库快照
+
+下表保留 `582de40` 材料整理时的历史基线。PR 的当前合并状态见下一节。
 
 | 项目 | 2026-11-12 只读核验结果 |
 | --- | --- |
@@ -30,10 +32,22 @@
 | 首个提交 | `3cb961863e97e8fe1ea1abd9bd5eb85e5568783f`，2026-11-11T16:59:26+08:00 |
 | 历史提交数量 | `582de40` 共 41 commits，其中 34 个非 merge commits，实质有效性待评审 |
 | 功能冻结基线 | `582de401fba9b1ec816f1c26003395bae7589ea5` |
-| 原有 PR #8 | Draft/OPEN，head 为 `6e4136bac9f18dd88359e5b783ccdd9ee160636c`，六项 CI 成功 |
+| PR #8 历史状态 | 初次整理时为 Draft/OPEN，head 为 `6e4136bac9f18dd88359e5b783ccdd9ee160636c`，六项 CI 成功 |
 | 报名、审核邮件 | 未提供，维护者待补 |
 
 仓库元数据可用 `gh api repos/Ksuserkqy/moonpasskey-lab` 只读复核。首次提交可用 `git log --reverse --format=fuller` 复核。提交历史本身不能证明报名审核已经通过。
+
+## 已核实的合并记录与修订前 CI
+
+2026-11-12 通过 GitHub API 重新核验以下记录。本表固定本次修订提交创建前的核验快照。
+
+| 记录 | 当前状态与对应提交 |
+| --- | --- |
+| PR #8 | 已于 `2026-11-12T10:58:03Z` 合入 `main`，head 为 `6e4136bac9f18dd88359e5b783ccdd9ee160636c`，merge commit 为 `6947564bccd421bccef8e3337ff5bab4db6347cc`。[PR #8](https://github.com/Ksuserkqy/moonpasskey-lab/pull/8) |
+| PR #9 | 已于 `2026-11-12T11:00:31Z` 合入 `feat/p7-1-interoperability-closure`，head 为 `85e63f3c48c43ae7d6303a6807697dcf4d91761e`，merge commit 为 `e944fd1cf8f7026ed8bed2489b70e02b36162084`。该合并的目标分支为 P7.1。[PR #9](https://github.com/Ksuserkqy/moonpasskey-lab/pull/9) |
+| 功能分支已验 CI | `85e63f3c48c43ae7d6303a6807697dcf4d91761e` 对应六个 job 均 success。[运行 43199498333](https://github.com/Ksuserkqy/moonpasskey-lab/actions/runs/43199498333) |
+| main 已验 CI | `6947564bccd421bccef8e3337ff5bab4db6347cc` 对应六个 job 均 success。[运行 43204987911](https://github.com/Ksuserkqy/moonpasskey-lab/actions/runs/43204987911) |
+| 本次最终修订的核对入口 | 新 PR 的 head SHA 与实际运行链接在该 PR 的验收说明中记录，可通过对应功能分支的 Actions 查证。[分支 Actions](https://github.com/Ksuserkqy/moonpasskey-lab/actions?query=branch%3Afeat%2Fp7-2-ubuntu-nginx-deployment) |
 
 ## 自有源码盘点
 
