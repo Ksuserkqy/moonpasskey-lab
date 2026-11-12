@@ -199,4 +199,21 @@ P5 复用 MoonCrypt 0.4.16 的密码学实现。P4 的参数结果和 `NotPerfor
 
 RP ID 的 ASCII label/长度检查只定义本阶段的配置支持范围。域名可注册性、PSL、IDNA 和调用方的 RP 权限仍须在可信配置层核验。Origin 精确列表可显式允许 related origins 和已授权的原生应用标识，不建立 Origin 与 RP ID 的字符串后缀规则。[WebAuthn §7.2](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-verifying-assertion) · [§13.4.3](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-cryptographic-challenges) · [§13.4.8](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-code-injection-attacks) · [§13.4.9](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-validating-origin) · [RFC 6454 §5](https://www.rfc-editor.org/rfc/rfc6454.html#section-5)
 
-P6 三个官方集成测试复用原有 W3C §16.2、§16.4、§16.5 字节和原始 DER，账户记录与策略属于项目测试上下文。另有 Node.js/OpenSSL 在仓库外生成的44组固定合成签名，明确作为项目合成数据。真实设备与浏览器矩阵的状态为 `NOT_PERFORMED`，详见互操作记录。[向量来源与许可](../webauthn/CRYPTO-VECTORS-NOTICE.md) · [设备互操作](ASSERTION-INTEROP.md)
+P6 三个官方集成测试复用原有 W3C §16.2、§16.4、§16.5 字节和原始 DER，账户记录与策略属于项目测试上下文。另有 Node.js/OpenSSL 在仓库外生成的44组固定合成签名，明确作为项目合成数据。P6 交付时真实设备矩阵为 NOT_PERFORMED，P7 Safari/macOS 的实际成功记录见互操作文档。[向量来源与许可](../webauthn/CRYPTO-VECTORS-NOTICE.md) · [设备互操作](ASSERTION-INTEROP.md)
+
+## Phase 7 参考宿主与集成
+
+继续固定 WebAuthn Level 3 REC 2026-08-25。P7 添加宿主与界面，复用原有协议检查。
+
+| 固定规范条款 | P7 状态 | 实现边界 |
+| --- | --- | --- |
+| §13.4.3 challenge | IMPLEMENTED，参考宿主 | Node CSPRNG 32字节，摘要存储，绑定会话/账户/RP/origin/purpose，时效与原子一次性消费 |
+| §7.1 registration | PARTIAL，TEST ONLY | none-attestation 测试登记，检查 challenge/origin/RP/flags/credential ID/ES256 点，未实现信任链与完整生产登记 |
+| §5.1.3、§5.1.4 browser APIs | IMPLEMENTED，测试入口 | 原生 create/get，保留原始 response 字节，实际设备结果见单独矩阵 |
+| §7.2 steps24–25 | PARTIAL | SQLite version CAS、冲突重读重新验签和计数风险评估、挑战与凭证原子提交；uvInitialized 与额外因素仍未实现 |
+| §6.1.1 counter | IMPLEMENTED，参考宿主 | 真实多连接竞争验证 ReportOnly/Reject，保持高水位和实际 received，风险状态不确定克隆归因 |
+| Secure Contexts §3.1、§5.2 | IMPLEMENTED，localhost 开发配置 | loopback 限制、浏览器 secure-context 检查、自定义域名需受信任 HTTPS |
+
+接口分析结果仅表达已执行的检查。独立解析的策略项为 NOT_PERFORMED，完整验证失败时未确认步骤保持 NOT_PERFORMED。attestation Array 的格式语义与信任评估限制继续沿用 P3，最小测试登记只允许 none 的空 Map。[WebAuthn REC](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/) · [Secure Contexts 固定版](https://www.w3.org/TR/2023/CRD-secure-contexts-20231110/) · [互操作执行记录](ASSERTION-INTEROP.md)
+
+Host 自动化测试临时生成的 P-256 key 和 DER 签名属于项目合成测试材料，私钥只保留在运行进程内存。原有 W3C、Wycheproof 和 NIST 官方来源及许可保持原记录。真实设备记录只收录实际执行的脱敏元数据与 Core 状态。

@@ -446,3 +446,58 @@ PR #6 的提交 `544ab1113914c0dfcffe2a55222991c5ff6b116f` 首轮四目标 CI �
 该轮没有 MoonBit 编译警告，但既有 setup-node v4.4.0 出现 Node20 runtime 和 punycode 弃用警告。按本任务的无 warning 验收要求，将其更新为官方 v6.5.0 的固定提交 `249970729cb0ef3589644e2896645e5dc5ba9c38`，实际 action.yml 声明 `using: node24`。Node 目标版本继续为24，MoonBit 固定版本继续沿用。[官方 v6.5.0 发布](https://github.com/actions/setup-node/releases/tag/v6.5.0) · [固定 Action manifest](https://github.com/actions/setup-node/blob/249970729cb0ef3589644e2896645e5dc5ba9c38/action.yml)
 
 CI 修正提交 `0934cda88d622fe5cd69e07b1e8cf8b080a44f30` 的四目标全部成功，每个目标443项通过、0失败，格式、接口、check/test/build/run 全部通过。逐个核对日志的固定工具链和测试总数，原有 Node/punycode 弃用警告已消除，未发现 MoonBit Warning 或 GitHub warning annotation。后续纯文档收尾提交的最终状态记录在 PR #6。[无警告四目标 CI](https://github.com/Ksuserkqy/moonpasskey-lab/actions/runs/43135910750) · [Phase 6 PR](https://github.com/Ksuserkqy/moonpasskey-lab/pull/6)
+
+## Phase 7 集成与互操作
+
+### 前置条件与固定环境
+
+PR #6 已于2026-11-12合并，合并提交为725c40ba10dc942498c96834e05d76ab644e5ac7。fetch 后确认 origin/main 包含该提交，初始工作区干净，从最新 origin/main 创建 feat/p7-integration-interoperability。原有443项测试在四目标重新执行并全部通过。main 保持原状态。
+
+本机全局工具链已经变为0.10.21，验收使用既有隔离目录 /tmp/moonpasskey-p5-toolchain-0.10.20 的 moon/moonrun0.1.20261104、moonc/core0.10.20+65efd5b93。MoonCrypt 保持0.4.16。moonbitlang/x@0.5.7 已存在于原依赖树，P7 将其声明为直接依赖，用于 CLI 文件 IO。
+
+### 实现与审阅
+
+新增 analysis 两个公开入口和48个黑盒测试，扩展既有 cmd/main，无额外 CLI 入口。四目标 CLI 文件输入、文本/JSON 输出、退出码、错误与原始字节传输均通过自动化验证。独立审阅发现文件 API 有损解码问题，已改为读取 Bytes 后严格 UTF-8 解码，并增加非法字节回归。
+
+参考 RP 使用 Node 内置安全随机数、HTTP(S) 和 SQLite。24项测试覆盖挑战绑定/过期、CSRF/Origin/Host、回滚、文件库与 WAL/SHM 权限、HTTP 严格 UTF-8、真实多连接竞争，以及实际 MoonBit Core 的 HTTP 和并发签名验证。三个实际 Core 竞争用例分别覆盖同 challenge 双提交、ReportOnly 高计数先提交后的 BS/风险更新、Reject 在版本冲突后依据最新计数拒绝。另有四个明确标注 test double 的事务编排竞争用例。
+
+独立审阅发现并修复 TLS 与 Origin 配置不一致、从子目录运行测试时的 Core 路径错误、报告过滤误删安全 metadata 等集成问题。AI 代理相互审阅属于项目自动化审阅，最终接受由维护者决定。
+
+### 本地验收
+
+| 目标 | MoonBit测试通过/失败 | CLI测试通过/失败 | info/check/build/run |
+| --- | --- | --- | --- |
+| wasm | 491/0 | 7/0 | PASS |
+| wasm-gc | 491/0 | 7/0 | PASS |
+| js | 491/0 | 7/0 | PASS |
+| native | 491/0 | 7/0 | PASS |
+
+MoonBit 新增48项，总计491项，原有443项完整保留。CLI 新增7项、参考 RP24项、Dashboard5项，共新增84个独立测试块或用例，总计527项。CLI 的7项在四目标各执行一次，统计独立用例时只计一次。原有向量循环内部的子案例按既有测试块口径计算。
+
+```sh
+moon info
+moon fmt
+moon fmt --check
+for target in wasm wasm-gc js native; do
+  moon info --target "$target"
+  moon check --target "$target" --deny-warn
+  moon test --target "$target" --deny-warn
+  moon build --target "$target" --deny-warn
+  moon run cmd/main --target "$target" --deny-warn
+  CLI_TARGET="$target" node --test cmd/main/cli.test.mjs
+done
+npm --prefix reference-rp test
+npm --prefix dashboard ci
+npm --prefix dashboard run check
+npm --prefix dashboard test
+npm --prefix dashboard run build
+git diff --check
+```
+
+本机安装的 Node24.18.0 运行 worker 测试时报告文件描述符 ownership/tracking 警告。换用官方同版本 Darwin arm64 归档后，完整24项通过且无警告，未设置 warning suppression 或修改 FD tracking。官方归档 SHA256 为4477b9f78efb77744cf5eb57a0e9594dba66466b38b4e93fa9f35cb907a095a6，与官方 SHASUMS256 一致。实际复验时将 /tmp/node-v24.18.0-darwin-arm64/bin 放到 PATH 首位。[官方归档](https://nodejs.org/dist/v24.18.0/node-v24.18.0-darwin-arm64.tar.xz) · [官方摘要](https://nodejs.org/dist/v24.18.0/SHASUMS256.txt)
+
+Dashboard 的 npm ci、vue-tsc、5项测试和 Vite build 均通过。当前 macOS npm12 环境阻止可选 fsevents@2.3.3 的安装脚本并报告 warning，生产构建和测试正常。未修改全局 npm 脚本许可。固定 MoonBit 构建 CommonJS 时提示仅 ESM 支持生成 TypeScript declaration，CommonJS 实际导出调用已通过测试。未隐藏 MoonBit 编译警告，check/test/build/run 均使用 deny-warn。
+
+### 远程 CI 与设备证据
+
+CI 新增 Reference RP and concurrency 与 Vue dashboard 两个独立 job，并在四目标矩阵执行 CLI 入口测试。提交8f512cc3bb6540d5e1153b387fb4a9420b95b4f9 的六个 CI job 全部成功。逐项日志确认四目标各491项、CLI各7项、RP24项和Dashboard5项通过，固定 moonc/core0.10.20+65efd5b93。MoonBit矩阵使用Node24.22.2，RP/前端使用固定Node24.18.0。随后维护者完成 Safari/macOS 平台 Passkey 注册与认证，13:02:59.977 CST 的实际 Dashboard 导出显示12项PASS、DER有效、UV/BE/BS=true、signCount0及Core最终PASS。provider按维护者选择记录，完整元数据与脱敏JSON见设备矩阵。[首轮 P7 CI](https://github.com/Ksuserkqy/moonpasskey-lab/actions/runs/43158292996)。文档收尾提交137e098的六项CI同样成功。[第二轮 P7 CI](https://github.com/Ksuserkqy/moonpasskey-lab/actions/runs/43158654028)[设备矩阵](ASSERTION-INTEROP.md)

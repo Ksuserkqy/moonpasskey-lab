@@ -4,7 +4,7 @@
 
 基础包的入口是调用方提供的 `StringView` 和 `BytesView`，按攻击者可控数据处理。P6 另区分不可信 Assertion 响应与可信的预期 challenge、账户凭证记录和 RP 策略。资产包括进程可用性、原始字节完整性、身份绑定、策略结果和状态更新的准确性。Core 负责有界验证，调用方负责可信上下文、输入获取和处理公开 Result。
 
-当前实现依赖 MoonBit 运行时、不可变 Bytes/BytesView 语义和标准库严格 Base64 解码器。固定大小限制约束每次 Base64URL 操作，调用方的并发次数、文件读取预算和进程级资源管理仍需在未来 CLI/服务入口落实。
+当前实现依赖 MoonBit 运行时、不可变 Bytes/BytesView 语义和标准库严格 Base64 解码器。固定大小限制约束每次 Base64URL 操作，P7 参考服务进一步约束单次 HTTP 输入和挑战容量，CLI 的文件读取与进程级总资源预算仍由调用环境管理。
 
 ## 已实现的防护
 
@@ -61,3 +61,20 @@ ByteReader 本身通过视图读取已有数据，整体文件大小、并发次
 P6 的严格策略拒绝 Assertion 中的 AT 和非零 RFU。扩展输出在有界结构解析后按 RP 策略忽略并保留，调用方使用依赖扩展结果的业务时应增加对应语义验证。原有结构解析入口继续保留自己的兼容性契约。[WebAuthn §6.1](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-authenticator-data) · [§7.2 step23](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-verifying-assertion)
 
 MoonCrypt 0.4.16 的已知坐标范围缺口由 P4 强制前置检查覆盖。缺少独立第三方安全审计、运行时与编译器行为、尚未执行的真实设备测试和持续模糊测试仍属于当前证据边界。[当前限制](LIMITATIONS.md)
+
+## Phase 7 参考 RP 攻击面
+
+| 风险 | 控制与证据 | 剩余边界 |
+| --- | --- | --- |
+| 预测挑战或复用 | Node CSPRNG 32字节，SHA-256 摘要，时效和一次性事务消费 | 依赖宿主随机源和可信时钟 |
+| 跨会话/账户/目的混用 | 每次读取与提交重验 session/user/RP/origin/purpose，失败类型区分 | 临时测试账户绑定当前会话，生产身份生命周期待实现 |
+| 并发双消费或旧状态覆盖 | BEGIN IMMEDIATE、version CAS、条件消费、同库提交与回滚 | SQLite 单机边界，未实现分布式事务 |
+| 乱序 counter 导致风险丢失 | 冲突重读最新记录后由 Core 重新评估，真实 worker/连接竞争测试 | ReportOnly 风险不提供设备克隆归因 |
+| CSRF、DNS rebinding 和跨站读取 | loopback bind、精确 Host/Origin、SameSite Strict、HttpOnly、CSRF token、无跨域放行、CSP | 同源代码与本机进程仍属信任边界 |
+| 认证材料进入日志或导出 | MoonBit 公开入口脱敏，Host 二次过滤，Dashboard 导出允许列表 | 浏览器 options 和内存存储需要完整公开凭证标识和挑战 |
+| 不可信输入耗尽资源 | HTTP body 2 MiB，Core envelope/depth/字段预算，容量与请求超时 | 单进程同步验签 CPU、长期旧记录清理和全面限流尚待评估 |
+| 测试注册误用于生产 | 界面、文档和报告标注 TEST ONLY，attestation_trust=NOT_PERFORMED | 注册信任链、账户恢复、生产授权与审计未实现 |
+
+默认数据库是内存库。显式 REFERENCE_RP_DB 启用文件持久化，保存公开 COSE key、credential ID、账户句柄、挑战摘要、状态和脱敏报告。原始认证响应不会写入数据库。文件权限0600，新目录0700，文件持久化的备份和删除由维护者管理。系统 Passkey 本身由系统 provider 保存，维护者在实验结束后自行管理测试凭证。
+
+Node 24.18 的 node:sqlite 处于 Release candidate 稳定性等级。MoonCrypt 0.4.16 缺少已核验的独立安全审计，原有范围检查防护持续存在。P7 自动化测试和设备证据不能建立整体 WebAuthn/FIPS 合规结论。[Node SQLite](https://nodejs.org/download/release/v24.18.0/docs/api/sqlite.html) · [当前限制](LIMITATIONS.md) · [互操作记录](ASSERTION-INTEROP.md)

@@ -2,7 +2,7 @@
 
 ## 阶段状态
 
-截至 2026-11-12，Phase 1 提供 MoonBit `base64url` 与 `bytereader` 包，Phase 2 提供 `cbor` 包，Phase 3 在 `webauthn` 包提供 ClientDataJSON、AuthenticatorData 和 AttestationObject 结构解析，attStmt 支持 Map/Array。Phase 4 增加 ES256 COSE 参数验证，Phase 5 增加 P-256 点导入、SHA-256、raw ES256 验签与 DER assertion 签名入口。Phase 6 增加 ES256 Assertion 的 RP 策略、凭证与账户绑定、计数器风险及状态更新建议。模块身份为 `ksuserkqy/moonpasskey_lab@0.1.0`，默认目标为 `wasm`。`cmd/main` 输出 `Hello`，协议分析 CLI 待实现。Core 验证调用方提供的可信配置、账户记录和认证字节，挑战生命周期、数据库事务和浏览器调用由上层管理。
+截至 2026-11-12，Phase 1 提供 MoonBit `base64url` 与 `bytereader` 包，Phase 2 提供 `cbor` 包，Phase 3 在 `webauthn` 包提供 ClientDataJSON、AuthenticatorData 和 AttestationObject 结构解析，attStmt 支持 Map/Array。Phase 4 增加 ES256 COSE 参数验证，Phase 5 增加 P-256 点导入、SHA-256、raw ES256 验签与 DER assertion 签名入口。Phase 6 增加 ES256 Assertion 的 RP 策略、凭证与账户绑定、计数器风险及状态更新建议。Phase 7 增加统一 analysis JSON 接口、已有 cmd/main 的 CLI、本地 Node/SQLite 参考 RP 和 Vue Dashboard。模块身份为 `ksuserkqy/moonpasskey_lab@0.1.0`，默认目标为 `wasm`。Core 验证调用方提供的可信配置、账户记录和认证字节，参考宿主管理挑战生命周期、事务和浏览器调用。
 
 ## 实际目录
 
@@ -86,12 +86,12 @@ moonpasskey-lab/
 
 | 层 | 职责 | 当前状态 |
 | --- | --- | --- |
-| MoonBit Core | 字节转换、结构解析、规则、密码学验证、分析报告 | 已实现基础包、有界 CBOR、协议结构、ES256 密码学与 Assertion RP 策略，分析报告待实现 |
-| CLI | 文件与参数输入、调用 Core、报告输出、退出码 | 当前只有 Hello 示例 |
-| Web Dashboard | 输入、协议树、字节视图、展示 Core 结果 | 规划 Vue 3 + TypeScript + Vite |
-| 测试基础设施 | 单元测试、集成测试、正负样本、互操作和回归 | 基础包、CBOR、协议解析黑盒测试及跨包集成测试；设备互操作尚未验证 |
+| MoonBit Core | 字节转换、结构解析、规则、密码学验证、分析报告 | 已实现基础包、有界 CBOR、协议结构、ES256 密码学、Assertion RP 策略与 analysis 脱敏报告 |
+| CLI | 文件与参数输入、调用 Core、报告输出、退出码 | cmd/main 调用 analysis.run_json，支持文本和 JSON |
+| Web Dashboard | 输入、flags、逐项验证与 counter 结果 | Vue 3 + TypeScript + Vite，同源调用参考 RP 的 MoonBit bridge |
+| 测试基础设施 | 单元测试、集成测试、正负样本、互操作和回归 | 基础包、CBOR、协议解析和集成测试；P7 已验证 Safari/macOS 真实 Passkey，其他设备见矩阵 |
 
-CLI 和 Web Dashboard 后续依赖 MoonBit Core。协议校验与安全规则归属 Core。前端集成机制须以真实 MoonBit 产物验证，界面展示应保留各步骤的状态和错误信息。
+CLI 和 Web Dashboard 共用 MoonBit analysis 接口。协议校验与安全规则归属 Core。Node 宿主实际加载编译得到的 CommonJS 产物，界面展示各步骤的状态和错误信息。
 
 ## 当前核心包
 
@@ -266,3 +266,24 @@ JSON 和 authenticatorData 分别复用同一个 `@cbor.Limits` 配置。原始�
 P5 首次增加外部依赖 `moonbitstack/mooncrypt@0.4.16`，对应 Git tag `v0.4.16` 的提交 `ad5f2e797c60a87e1f6541d1d6ba0dd94df70d9a`。实际解析的间接依赖为 moonbase 0.4.5、moondate 0.1.7、moonseed 0.1.3 和 moonbitlang/x 0.5.7，许可证均为 Apache-2.0。选用的 hash/sha2、sign/ecdsa 及其实际生产依赖路径没有引入平台 FFI。
 
 依赖审查核对了源代码、公钥与签名边界、公开问题及归档身份。选定后端的隔离探针在固定工具链四目标各通过 275 项独立测试，并完成带 `--deny-warn` 的检查、构建和运行。最终仓库全套测试与 CI 结果单独记录。未找到适用于该后端版本的独立第三方安全审计报告，采用范围与公开坐标问题的防护条件详见 `LIMITATIONS.md`。候选比较与探针证据见 `DEVELOPMENT.md`。
+
+## Phase 7 集成边界
+
+```mermaid
+flowchart LR
+    CLI[cmd/main CLI] --> A[MoonBit analysis]
+    UI[Vue Dashboard] --> HTTP[Loopback HTTP RP]
+    Browser[Native WebAuthn create/get] --> UI
+    HTTP --> A
+    A --> W[P1-P6 WebAuthn Core]
+    HTTP --> DB[SQLite sessions/challenges/credentials/reports]
+    RNG[Node crypto.randomBytes] --> HTTP
+```
+
+`analysis/` 提供两个公开字符串 JSON 入口。run_json 仅输出脱敏报告，run_host_json 供可信宿主登记测试凭证并生成内部记录。ClientData、AuthenticatorData、Assertion 分析和完整 Assertion 验证复用既有接口。新增 register-test 明确只接受 none attestation，完成最小登记所需的 challenge、origin、RP ID、flags、凭证 ID 与 ES256 曲线点检查。attestation_trust 保持 NOT_PERFORMED。P1–P6 源码与协议语义保持原状。
+
+`reference-rp/` 使用 Node 内置 crypto、http/https 和 sqlite。会话、挑战摘要、公开凭证状态及脱敏报告进入同一 SQLite 数据库，默认内存运行。Core 验证后在 BEGIN IMMEDIATE 内重验挑战并以凭证 version 条件更新，版本冲突重新读取并完整重新验证。挑战消费与状态修改在同一事务提交。
+
+`dashboard/` 只执行原生浏览器 WebAuthn 调用、ArrayBuffer 传输转换和结果展示。原始 clientDataJSON 从浏览器返回值直接编码，服务端解码后由 MoonBit 完成哈希与验签。静态文件由 RP 同源提供，依赖和字体在构建时本地打包。Dashboard 对外导出使用字段允许列表脱敏。
+
+新增直接依赖 moonbitlang/x@0.5.7 用于 CLI 文件 IO，该版本已经由 MoonCrypt 的既有依赖树引入。固定 MoonCrypt 0.4.16 和工具链保持原版本。JS 集成通过真实编译产物的 HTTP 测试验证，其他目标仍可独立使用 Core 和 CLI。[CLI](CLI.md) · [参考 RP](REFERENCE-RP.md) · [事务机制](CHALLENGE-LIFECYCLE.md)

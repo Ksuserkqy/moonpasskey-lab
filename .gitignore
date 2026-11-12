@@ -4,3 +4,6 @@ target/
 target
 .mooncakes/
 .moonagent/
+node_modules/
+dashboard/dist/
+reference-rp/data/

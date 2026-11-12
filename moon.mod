@@ -27,4 +27,5 @@ description = ""
 
 import {
   "moonbitstack/mooncrypt@0.4.16",
+  "moonbitlang/x@0.5.7",
 }
