@@ -118,12 +118,21 @@ test("safe export excludes raw authentication material and unknown nested fields
       },
     },
   };
-  const exported = safeReportExport(entry, {
-    device: "Test device",
-    operatingSystem: "Test OS",
-    browser: "Test browser",
-    provider: "Test provider",
-  });
+  const exported = safeReportExport(entry,
+    {
+      device: "Test device",
+      operatingSystem: "Test OS 1",
+      browser: "Test browser 1",
+      provider: "Test provider",
+      providerSource: "UNKNOWN",
+    },
+    {
+      rpId: "localhost",
+      origin: "http://localhost:8080",
+      userVerification: "preferred",
+      counterPolicy: "report-only",
+    },
+  );
   const json = JSON.stringify(exported);
   assert.equal(json.includes("secret"), false);
   assert.equal(json.includes("omitted hash"), false);
@@ -145,7 +154,13 @@ test("failed and partial Core reports export without inventing verification resu
         error: { kind: "Parse", context: "authData", offset: 12 },
       },
     },
-    { device: "", operatingSystem: "", browser: "", provider: "" },
+    {
+      device: "Synthetic fixture",
+      operatingSystem: "Test OS 1",
+      browser: "Test browser 1",
+      provider: "Unknown",
+      providerSource: "UNKNOWN",
+    },
   );
   assert.equal(exported.status, "FAIL");
   assert.equal(exported.checks?.signature, "NOT_PERFORMED");

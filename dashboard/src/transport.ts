@@ -1,3 +1,11 @@
+import {
+  CHECK_NAMES,
+  assertValidInteropReport,
+  type DatabaseTransaction,
+  type InteropReport,
+  type ProviderSource,
+} from "./interop-report.ts";
+
 export type CheckStatus =
   | "PASS"
   | "FAIL"
@@ -42,6 +50,7 @@ export interface ReportEnvelope {
   report?: CoreReport;
   reportId?: string;
   error?: { kind: string; context?: string };
+  databaseTransaction?: Extract<DatabaseTransaction, { status: "COMMITTED" }>;
 }
 
 export interface Session {
@@ -70,6 +79,7 @@ export interface DeviceMetadata {
   operatingSystem: string;
   browser: string;
   provider: string;
+  providerSource: ProviderSource;
 }
 
 export interface LocalReport {
@@ -77,6 +87,41 @@ export interface LocalReport {
   source: "registration" | "assertion" | "import";
   createdAt: string;
   report: CoreReport;
+  configuration?: Session["config"];
+  databaseTransaction?: DatabaseTransaction;
+}
+
+export function captureLocalReport(
+  envelope: ReportEnvelope | CoreReport,
+  source: LocalReport["source"],
+  config?: Session["config"],
+): LocalReport {
+  const report =
+    "report" in envelope && envelope.report
+      ? envelope.report
+      : envelope as CoreReport;
+  const committed =
+    "databaseTransaction" in envelope ? envelope.databaseTransaction : undefined;
+  return {
+    id:
+      "reportId" in envelope && envelope.reportId
+        ? envelope.reportId
+        : crypto.randomUUID(),
+    source,
+    createdAt: new Date().toISOString(),
+    report: structuredClone(report),
+    configuration: source !== "import" && config ? { ...config } : undefined,
+    databaseTransaction:
+      source === "import"
+        ? { status: "NOT_PERFORMED" }
+        : committed
+          ? {
+              status: committed.status,
+              previousVersion: committed.previousVersion,
+              version: committed.version,
+            }
+          : { status: "NOT_OBSERVED" },
+  };
 }
 
 export const MAX_IMPORT_BYTES = 2_097_152;
@@ -162,11 +207,16 @@ export function safeReportExport(
   entry: LocalReport,
   device: DeviceMetadata,
   config?: Session["config"],
-) {
+): InteropReport {
   const report = entry.report;
   const client = report.clientData;
   const auth = report.authenticatorData;
-  return {
+  const configuration = entry.source === "import"
+    ? undefined
+    : entry.configuration ?? config;
+  const transaction = entry.databaseTransaction;
+  const exported = {
+    schemaVersion: 1,
     application: "MoonPasskey Lab",
     developmentOnly: true,
     source: entry.source,
@@ -176,18 +226,37 @@ export function safeReportExport(
       operatingSystem: device.operatingSystem,
       browser: device.browser,
       provider: device.provider,
+      providerSource: device.providerSource,
     },
-    configuration: config
+    configuration: configuration
       ? {
-          rpId: config.rpId,
-          origin: config.origin,
-          userVerification: config.userVerification,
-          counterPolicy: config.counterPolicy,
+          rpId: configuration.rpId,
+          origin: configuration.origin,
+          userVerification: configuration.userVerification,
+          counterPolicy: configuration.counterPolicy,
         }
-      : undefined,
+      : null,
+    outcome: report.status === "PASS" ? "PASS" : "FAILED",
     status: report.status,
+    databaseTransaction:
+      transaction?.status === "COMMITTED"
+        ? {
+            status: transaction.status,
+            previousVersion: transaction.previousVersion,
+            version: transaction.version,
+          }
+        : {
+            status:
+              transaction?.status ??
+              (entry.source === "import" ? "NOT_PERFORMED" : "NOT_OBSERVED"),
+          },
     algorithm: report.algorithm,
-    checks: report.checks ? { ...report.checks } : undefined,
+    checks: report.checks
+      ? Object.fromEntries(
+          CHECK_NAMES.filter((key) => Object.hasOwn(report.checks!, key))
+            .map((key) => [key, report.checks![key]]),
+        )
+      : undefined,
     error: report.error
       ? {
           kind: report.error.kind,
@@ -236,4 +305,8 @@ export function safeReportExport(
         }
       : undefined,
   };
+  // Match the actual JSON download and remove absent optional values before validation.
+  const serialized: unknown = JSON.parse(JSON.stringify(exported));
+  assertValidInteropReport(serialized);
+  return serialized;
 }

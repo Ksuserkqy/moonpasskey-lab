@@ -1,0 +1,527 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MoonPasskey Lab redacted interoperability report v1",
+  "description": "Strict field allowlist. The shared validator additionally checks exact origins, calendar dates, outcome consistency and committed credential versions.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "application",
+    "developmentOnly",
+    "source",
+    "capturedAt",
+    "device",
+    "configuration",
+    "outcome",
+    "status",
+    "databaseTransaction"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "application": {
+      "const": "MoonPasskey Lab"
+    },
+    "developmentOnly": {
+      "const": true
+    },
+    "source": {
+      "enum": [
+        "registration",
+        "assertion",
+        "import"
+      ]
+    },
+    "capturedAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+    },
+    "device": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "device",
+        "operatingSystem",
+        "browser",
+        "provider",
+        "providerSource"
+      ],
+      "properties": {
+        "device": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "\\S"
+        },
+        "operatingSystem": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "\\S"
+        },
+        "browser": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "\\S"
+        },
+        "provider": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "\\S"
+        },
+        "providerSource": {
+          "enum": [
+            "MAINTAINER_SELECTED",
+            "INDEPENDENTLY_VERIFIED",
+            "UNKNOWN"
+          ]
+        }
+      }
+    },
+    "configuration": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "rpId",
+        "origin",
+        "userVerification",
+        "counterPolicy"
+      ],
+      "properties": {
+        "rpId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253,
+          "pattern": "^(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\\.)*[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$"
+        },
+        "origin": {
+          "type": "string",
+          "format": "uri",
+          "minLength": 1,
+          "maxLength": 2048,
+          "pattern": "^https?://[^/?#@\\s]+$"
+        },
+        "userVerification": {
+          "enum": [
+            "required",
+            "preferred",
+            "discouraged"
+          ]
+        },
+        "counterPolicy": {
+          "enum": [
+            "report-only",
+            "reject"
+          ]
+        }
+      }
+    },
+    "outcome": {
+      "enum": [
+        "PASS",
+        "FAILED",
+        "BLOCKED",
+        "NOT_PERFORMED"
+      ]
+    },
+    "status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        null
+      ]
+    },
+    "databaseTransaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "COMMITTED",
+            "NOT_PERFORMED",
+            "NOT_OBSERVED",
+            "UNKNOWN"
+          ]
+        },
+        "previousVersion": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      }
+    },
+    "algorithm": {
+      "const": "ES256"
+    },
+    "checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [],
+      "properties": {
+        "json": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "WARNING",
+            "NOT_PERFORMED",
+            "ADVANCED",
+            "NOT_SUPPORTED"
+          ]
+        },
+        "authenticator_data": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "WARNING",
+            "NOT_PERFORMED",
+            "ADVANCED",
+            "NOT_SUPPORTED"
+          ]
+        },
+        "public_key": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "WARNING",
+            "NOT_PERFORMED",
+            "ADVANCED",
+            "NOT_SUPPORTED"
+          ]
+        },
+        "identity": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "WARNING",
+            "NOT_PERFORMED",
+            "ADVANCED",
+            "NOT_SUPPORTED"
+          ]
+        },
+        "challenge": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "WARNING",
+            "NOT_PERFORMED",
+            "ADVANCED",
+            "NOT_SUPPORTED"
+          ]
+        },
+        "origin": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "WARNING",
+            "NOT_PERFORMED",
+            "ADVANCED",
+            "NOT_SUPPORTED"
+          ]
+        },
+        "cross_origin": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "WARNING",
+            "NOT_PERFORMED",
+            "ADVANCED",
+            "NOT_SUPPORTED"
+          ]
+        },
+        "rp_id_hash": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "WARNING",
+            "NOT_PERFORMED",
+            "ADVANCED",
+            "NOT_SUPPORTED"
+          ]
+        },
+        "user_presence": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "WARNING",
+            "NOT_PERFORMED",
+            "ADVANCED",
+            "NOT_SUPPORTED"
+          ]
+        },
+        "user_verification": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "WARNING",
+            "NOT_PERFORMED",
+            "ADVANCED",
+            "NOT_SUPPORTED"
+          ]
+        },
+        "backup": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "WARNING",
+            "NOT_PERFORMED",
+            "ADVANCED",
+            "NOT_SUPPORTED"
+          ]
+        },
+        "signature": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "WARNING",
+            "NOT_PERFORMED",
+            "ADVANCED",
+            "NOT_SUPPORTED"
+          ]
+        },
+        "counter": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "WARNING",
+            "NOT_PERFORMED",
+            "ADVANCED",
+            "NOT_SUPPORTED"
+          ]
+        },
+        "attestation_trust": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "WARNING",
+            "NOT_PERFORMED",
+            "ADVANCED",
+            "NOT_SUPPORTED"
+          ]
+        }
+      }
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z][A-Za-z0-9]*(?:\\.[A-Za-z][A-Za-z0-9]*)*$"
+        },
+        "context": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "pattern": "^(?:[A-Za-z][A-Za-z0-9_.\\[\\]-]*|(?:[A-Za-z][A-Za-z0-9_.\\[\\]-]*\\.)?trailing data)$"
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2097152
+        }
+      }
+    },
+    "clientData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "challenge",
+        "origin",
+        "crossOrigin",
+        "topOrigin"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "maxLength": 1048576
+        },
+        "challenge": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "redacted",
+            "encodedLength"
+          ],
+          "properties": {
+            "redacted": {
+              "const": true
+            },
+            "encodedLength": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2097152
+            }
+          }
+        },
+        "origin": {
+          "type": "string",
+          "maxLength": 1048576
+        },
+        "crossOrigin": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "topOrigin": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 1048576
+        }
+      }
+    },
+    "authenticatorData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "length",
+        "flags",
+        "signCount"
+      ],
+      "properties": {
+        "length": {
+          "type": "integer",
+          "minimum": 37,
+          "maximum": 1048576
+        },
+        "flags": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "up",
+            "uv",
+            "be",
+            "bs",
+            "at",
+            "ed",
+            "rfu"
+          ],
+          "properties": {
+            "up": {
+              "type": "boolean"
+            },
+            "uv": {
+              "type": "boolean"
+            },
+            "be": {
+              "type": "boolean"
+            },
+            "bs": {
+              "type": "boolean"
+            },
+            "at": {
+              "type": "boolean"
+            },
+            "ed": {
+              "type": "boolean"
+            },
+            "rfu": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            }
+          }
+        },
+        "signCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      }
+    },
+    "crypto": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "format"
+      ],
+      "properties": {
+        "format": {
+          "const": "DER"
+        },
+        "signatureValid": {
+          "type": "boolean"
+        }
+      }
+    },
+    "counter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "stored",
+        "received"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "WARNING",
+            "NOT_PERFORMED",
+            "ADVANCED",
+            "NOT_SUPPORTED"
+          ]
+        },
+        "stored": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "received": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "sourceFile",
+        "sourceSha256"
+      ],
+      "properties": {
+        "kind": {
+          "const": "LEGACY_NORMALIZATION"
+        },
+        "sourceFile": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+\\.redacted\\.json$"
+        },
+        "sourceSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    }
+  }
+}
