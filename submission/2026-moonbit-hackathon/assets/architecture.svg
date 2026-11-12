@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">MoonPasskey Lab architecture</title>
+  <desc id="desc">Browser and CLI share the MoonBit analysis and verification Core. The Node reference RP owns sessions, challenges and SQLite transactions. Nginx is a prepared deployment entry, with public deployment still pending.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#60748f"/></marker>
+    <style>text{font-family:Inter,system-ui,sans-serif;fill:#25354c}.heading{font-size:21px;font-weight:600}.sub{font-size:15px;fill:#5d7089}.line{fill:none;stroke:#60748f;stroke-width:2;marker-end:url(#arrow)}.box{fill:white;stroke:#d6e0ed;stroke-width:1.5}</style>
+  </defs>
+  <rect width="1200" height="720" rx="20" fill="#f3f6fa"/>
+  <text x="60" y="51" font-size="29" font-weight="700">MoonPasskey Lab</text>
+  <text x="60" y="79" class="sub">A shared MoonBit Core for protocol analysis and verification</text>
+
+  <rect x="440" y="100" width="320" height="62" rx="10" fill="#f3f6fa" stroke="#8295af" stroke-dasharray="6 5"/>
+  <text x="460" y="125" font-size="17" font-weight="600">Nginx · verified upstream TLS</text>
+  <text x="460" y="147" font-size="13" fill="#5d7089">Deployment preparation · public entry pending</text>
+  <path d="M600 162V189" class="line" stroke-dasharray="6 5"/>
+
+  <rect x="60" y="190" width="250" height="100" rx="12" class="box"/>
+  <text x="82" y="224" class="heading">Browser / Vue</text>
+  <text x="82" y="250" class="sub">Native WebAuthn API</text>
+  <text x="82" y="273" class="sub">Original bytes · safe reports</text>
+  <path d="M310 240H439" class="line"/>
+  <text x="337" y="227" font-size="13">HTTP(S)</text>
+
+  <rect x="440" y="190" width="320" height="100" rx="12" class="box"/>
+  <text x="462" y="224" class="heading">Node.js Reference RP</text>
+  <text x="462" y="250" class="sub">Sessions · CSRF · random challenges</text>
+  <text x="462" y="273" class="sub">Trusted context · atomic state commit</text>
+  <path d="M761 240H879" class="line" marker-start="url(#arrow)"/>
+
+  <rect x="880" y="190" width="260" height="100" rx="12" class="box"/>
+  <text x="902" y="224" class="heading">SQLite</text>
+  <text x="902" y="250" class="sub">Challenge consumption</text>
+  <text x="902" y="273" class="sub">Credential version / CAS</text>
+
+  <rect x="60" y="350" width="250" height="90" rx="12" class="box"/>
+  <text x="82" y="384" class="heading">MoonBit CLI</text>
+  <text x="82" y="413" class="sub">File input · text / JSON output</text>
+  <path d="M310 395H439" class="line"/>
+
+  <path d="M600 290V349" class="line"/>
+  <rect x="440" y="350" width="320" height="90" rx="12" fill="#e8effa" stroke="#9fb7d8" stroke-width="1.5"/>
+  <text x="462" y="384" class="heading">MoonBit analysis</text>
+  <text x="462" y="413" class="sub">Shared JSON interface · redacted result</text>
+  <text x="808" y="382" font-size="15" fill="#5d7089">Node loads the compiled JS Core</text>
+  <text x="808" y="408" font-size="15" fill="#5d7089">Core + CLI tested on four targets</text>
+
+  <path d="M600 440V489" class="line"/>
+  <rect x="440" y="490" width="700" height="150" rx="12" fill="#17263d"/>
+  <text x="462" y="527" font-size="23" font-weight="600" style="fill:#fff">MoonBit WebAuthn Core</text>
+  <text x="462" y="557" font-size="17" style="fill:#d6e4f7">Protocol structure · ES256 / DER · RP policy · counter risk</text>
+  <text x="462" y="591" font-size="15" style="fill:#a9c1e1">Base64URL / ByteReader / bounded CBOR</text>
+  <text x="462" y="616" font-size="15" style="fill:#a9c1e1">MoonCrypt 0.4.16 · P-256 / SHA-256 / ECDSA</text>
+
+  <text x="60" y="535" font-size="16" font-weight="600">Trust boundary</text>
+  <text x="60" y="565" class="sub">Core verifies supplied context.</text>
+  <text x="60" y="590" class="sub">The host owns identity, storage</text>
+  <text x="60" y="615" class="sub">and challenge lifecycle.</text>
+  <text x="60" y="684" font-size="14" fill="#5d7089">Solid arrows show implemented paths. Dashed entry shows the prepared Nginx design, validated in an isolated Ubuntu 22.04 VM.</text>
+</svg>
