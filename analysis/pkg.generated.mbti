@@ -1,0 +1,15 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "ksuserkqy/moonpasskey_lab/analysis"
+
+// Values
+pub fn run_host_json(String) -> String
+
+pub fn run_json(String) -> String
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

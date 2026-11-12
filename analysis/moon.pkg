@@ -1,0 +1,16 @@
+import {
+  "ksuserkqy/moonpasskey_lab/webauthn",
+  "ksuserkqy/moonpasskey_lab/base64url",
+  "ksuserkqy/moonpasskey_lab/cbor",
+  "moonbitlang/core/json",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitstack/mooncrypt/spec",
+}
+
+pkgtype(kind: "foreign_library")
+
+options(
+  link: {
+    "js": { "exports": [ "run_json", "run_host_json" ], "format": "cjs" },
+  },
+)

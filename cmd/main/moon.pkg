@@ -1,5 +1,9 @@
-// import {
-//   "ksuserkqy/moonpasskey_lab" @lib,
-// }
+import {
+  "ksuserkqy/moonpasskey_lab/analysis",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/x/fs",
+}
 
 pkgtype(kind: "executable")
