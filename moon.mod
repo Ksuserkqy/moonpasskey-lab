@@ -24,3 +24,7 @@ keywords = [ ]
 preferred_target = "wasm"
 
 description = ""
+
+import {
+  "moonbitstack/mooncrypt@0.4.16",
+}

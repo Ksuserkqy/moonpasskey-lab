@@ -2,7 +2,7 @@
 
 ## 阶段状态
 
-截至 2026-11-12，Phase 1 已实现 MoonBit `base64url` 与 `bytereader` 包，Phase 2 新增 `cbor` 包，Phase 3 新增 `webauthn` 包，提供 ClientDataJSON、AuthenticatorData 和 AttestationObject 的结构解析（attStmt 支持 Map/Array）。Phase 4 在同一 `webauthn` 包新增 ES256 COSE 参数验证。模块身份保持 `ksuserkqy/moonpasskey_lab@0.1.0`，默认目标为 `wasm`。`cmd/main` 当前运行后输出 `Hello`，协议分析 CLI 尚未实现。结构解析成功不代表认证成功。
+截至 2026-11-12，Phase 1 提供 MoonBit `base64url` 与 `bytereader` 包，Phase 2 提供 `cbor` 包，Phase 3 在 `webauthn` 包提供 ClientDataJSON、AuthenticatorData 和 AttestationObject 结构解析，attStmt 支持 Map/Array。Phase 4 增加 ES256 COSE 参数验证，Phase 5 增加 P-256 点导入、SHA-256、raw ES256 验签与 assertion 签名消息构造。模块身份为 `ksuserkqy/moonpasskey_lab@0.1.0`，默认目标为 `wasm`。`cmd/main` 输出 `Hello`，协议分析 CLI 与完整 RP 验证流程待实现。
 
 ## 实际目录
 
@@ -44,6 +44,12 @@ moonpasskey-lab/
 │   ├── attestation.mbt
 │   ├── cose_key.mbt
 │   ├── cose_key_test.mbt
+│   ├── crypto.mbt
+│   ├── crypto_test.mbt
+│   ├── crypto_der_test.mbt
+│   ├── crypto_vectors_test.mbt
+│   ├── fixtures/
+│   │   └── WYCHEPROOF-LICENSE.txt
 │   ├── clientdata_test.mbt
 │   ├── authdata_test.mbt
 │   ├── attestation_test.mbt
@@ -72,7 +78,7 @@ moonpasskey-lab/
 
 | 层 | 职责 | 当前状态 |
 | --- | --- | --- |
-| MoonBit Core | 字节转换、结构解析、规则、密码学验证、分析报告 | 已实现基础包、有界 CBOR、P3 结构解析及 ES256 参数验证；曲线点/签名验证与分析报告尚未实现 |
+| MoonBit Core | 字节转换、结构解析、规则、密码学验证、分析报告 | 已实现基础包、有界 CBOR、协议结构、ES256 参数/P-256 点验证、SHA-256 与 raw 验签，RP 策略与分析报告待实现 |
 | CLI | 文件与参数输入、调用 Core、报告输出、退出码 | 当前只有 Hello 示例 |
 | Web Dashboard | 输入、协议树、字节视图、展示 Core 结果 | 规划 Vue 3 + TypeScript + Vite |
 | 测试基础设施 | 单元测试、集成测试、正负样本、互操作和回归 | 基础包、CBOR、协议解析黑盒测试及跨包集成测试；设备互操作尚未验证 |
@@ -111,7 +117,7 @@ Array/Map key 按上述三步比较契约处理。CTAP §8 的 Note 说明当前
 
 深度按根到当前节点的路径计数。根 Array/Map 为第 1 层，根标量为 0 层，Map 的 key 和 value 中的容器均计数，兄弟容器各自计算。`Generic` 使用配置的深度预算。`Ctap2Canonical` 同时检查项目预算和 CTAP 四层上限，`max_depth=64` 仍会拒绝第 5 层，较小预算可进一步收紧。
 
-`ParseError` 提供零基 offset、嵌套 context 和可区分的错误种类，覆盖截断、非法头、UTF-8、重复键、编码 profile、资源限制及 unsupported 类型。P3 的 AuthenticatorData 和 AttestationObject 复用此解码器，ES256 参数验证由 P4 显式入口提供；其他算法与密码学有效性未实现。
+`ParseError` 提供零基 offset、嵌套 context 和可区分的错误种类，覆盖截断、非法头、UTF-8、重复键、编码 profile、资源限制及 unsupported 类型。P3 的 AuthenticatorData 和 AttestationObject 复用此解码器，P4 提供显式 ES256 参数验证，P5 提供单独的密码学入口。
 
 #### CBOR 实现状态
 
@@ -160,7 +166,7 @@ WebAuthn 的外层对象、公钥及扩展均使用现有 `Ctap2Canonical` profi
 
 `validate_es256_credential_public_key(BytesView, limits? : @cbor.Limits)` 返回 `Result[Es256PublicKeyParameters, ParseError]`。入口要求恰好一个完整 canonical CBOR Map，复用现有 decoder 的预算、重复键与尾随检查，不接受来源不明的 `Value`，因此调用方不能通过 Generic 解码结果绕过 canonical 检查。
 
-结果保存检查后的 `kty=2`、`alg=-7`、`crv=1`、原始 x/y 字节、完整 key 编码和各参数值的源范围。x/y 必须各 32 字节且小于 P-256 素数，保留前导零，不补齐或截断。`CurvePointValidation.NotPerformed` 明确表示尚未检查曲线方程；该结果是参数集合，不是可直接信任的密码学公钥。
+结果保存检查后的 `kty=2`、`alg=-7`、`crv=1`、原始 x/y 字节、完整 key 编码和各参数值的源范围。x/y 必须各 32 字节且小于 P-256 素数，保留前导零。P4 结果中的 `CurvePointValidation.NotPerformed` 始终描述这一次参数检查，曲线方程检查由 P5 的显式导入入口执行。
 
 AT 结果新增 `AttestedCredentialData::validate_es256()` 显式方法。它只查看 P3 已由 canonical decoder 产生的不可变、受预算约束的 Map；不重置或扩大预算。`parse_authenticator_data` 和 `parse_attestation_object` 保持原有结构解析行为，其他算法仍能结构解析，调用语义入口才报告 `UnsupportedAlgorithm`。两层之间没有隐式验证或自动信任提升。
 
@@ -171,19 +177,45 @@ flowchart LR
   C --> V[P4 encoded key validator]
   S -->|explicit AT method| V
   V --> P[ES256 parameters: point NotPerformed]
-  P -. separate future validation .-> K[Curve point and signature verification]
+  P -->|explicit P5 import| K[ValidatedEs256PublicKey]
+  K --> E[ES256 raw signature verification]
+  H[SHA-256] --> D[authenticatorData + clientDataHash]
+  D --> E
 ```
 
 独立字节入口的 range/error offset 相对于传入 view；AT 方法的范围相对于 `authData.raw`，`raw` 仅包含 key 编码。位于 AttestationObject 时，调用方加 `auth_data_payload_range.start` 得到外层位置。参数值错误定位到 value 头，禁止/未知 label 定位到 key 头，缺失参数定位到 key Map 起点，context 指明字段或 parameter 下标。
 
 错误复用 `ParseError/ErrorKind`，区分算法、类型、曲线、坐标长度、坐标范围、压缩 y、私钥 d、已知禁止 optional、未知不支持参数以及原始 CBOR 错误。错误不回传私钥字段内容。检查顺序是 CBOR、label 策略、alg、kty、crv、x、y；未知参数拒绝属于当前严格支持范围，不是对全部 COSE 的违规判断。
 
+### 密码学验证（P5）
+
+`webauthn/crypto.mbt` 通过固定版本 `moonbitstack/mooncrypt@0.4.16` 调用 P-256、SHA-256 和 ECDSA。项目适配层负责参数来源、格式、资源与错误契约，椭圆曲线运算由后端执行。当前生产调用路径使用纯 MoonBit 包，在 native、js、wasm、wasm-gc 上共享实现。候选调查、固定工具链探针与最终仓库验收分别记录在开发文档中。
+
+| API | 结果与职责 |
+| --- | --- |
+| `import_es256_public_key(Es256PublicKeyParameters)` | 返回 `Result[ValidatedEs256PublicKey, CryptoError]`，导入 P-256 affine 点并检查曲线方程 |
+| `ValidatedEs256PublicKey::parameters()` | 返回原始 P4 参数记录及源范围 |
+| `sha256(BytesView)` | 对完整输入 view 计算固定 32 字节 digest，支持空输入 |
+| `verify_es256_signature(key, message, signature)` | 验证 raw 64 字节 `R || S` 签名，返回 `Result[Bool, CryptoError]` |
+| `build_webauthn_assertion_signed_data(authenticator_data, client_data_json)` | 返回原始 authData 拼接原始 clientDataJSON 的 SHA-256 |
+| `verify_webauthn_es256_assertion_signature(key, authData, clientDataJSON, signature_der)` | 严格解码 WebAuthn DER 签名，构造签名消息并验签 |
+
+`ValidatedEs256PublicKey` 具有私有后端字段，只能通过导入入口取得。导入接收 P4 已检查的参数记录，先前的 32 字节与 `< p` 约束持续生效，然后由 MoonCrypt 检查曲线方程。Affine 输入及 P-256 的 cofactor-one 属性确立有限有效公钥点。`parameters()` 保留的 P4 记录继续显示 `NotPerformed`，而外层类型记录已执行的点检查层级。
+
+MoonCrypt 0.4.16 的 `PublicKey::of_xy` 会接受部分与合法点模 p 同余的非规范坐标，因此 P4 的严格域范围检查是导入前置条件。项目回归覆盖公开 issue #1 的 `x=p` 输入，确保其在 P4 坐标范围检查处返回 `InvalidCoordinate`。后端未经本项目修改。[MoonCrypt issue #1](https://github.com/moonbitstack/mooncrypt/issues/1)
+
+Raw 验签先检查恰好 64 字节，再检查 `1 <= R,S < n`，R/S 按固定 32 字节无符号大端解释。`CryptoError` 区分长度、非法标量及公钥导入错误，合法编码的签名验证失败返回 `Ok(false)`。后端的 message-based verify 对所传 message 执行一次 SHA-256，适配层直接传入 message。Low-S 和 high-S 均接受。[RFC 9053 §2.1](https://www.rfc-editor.org/rfc/rfc9053.html#section-2.1)
+
+签名消息构造独立计算 `SHA256(clientDataJSON)`，将结果追加到原始 authenticatorData。输入 view 的空白、JSON 顺序、转义及字节边界都会参与哈希，字节级入口接受空 view。拼接前检查 Int32 长度加法边界。`verify_webauthn_es256_assertion_signature` 使用构造后的消息执行 ES256 验签。[WebAuthn §7.2](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-verifying-assertion)
+
+WebAuthn §6.5.5 规定 authenticator 的 ES256 wire 签名采用 ASN.1 DER。assertion 入口复用 MoonCrypt ASN.1 解析器，限制编码为 8 至 72 字节，严格检查一个 SEQUENCE 中恰好两个最短、非负 INTEGER，并要求完整消费输入。非最短长度、indefinite 长度、冗余符号零与负数均返回 `InvalidSignatureEncoding`。必要的正数符号零被移除，32 字节以内的短整数左补零，得到后端所需的 raw64。零、超过 32 字节的正数幅值或不小于群阶的 R/S 返回 `InvalidSignatureScalar`。通用 `verify_es256_signature` 继续接收 COSE raw64 签名。[WebAuthn §6.5.5](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-signature-attestation-types)
+
 ## 后续核心模块职责
 
 | 模块 | 计划契约 |
 | --- | --- |
 | COSE 扩展 | 现有 ES256 参数入口以外的算法、类型和曲线需单独实现与测试 |
-| Cryptography | 选择经核验的 MoonBit 密码学组件，验证原始签名输入 |
+| Cryptography 扩展 | 其他算法、attestation 签名与证书链需要对应规范、后端调查及独立测试 |
 | Security rules | 每条规则记录标准条款、上下文、证据和测试 |
 | Analysis/report | 组合解析、验证和 unsupported 状态，产生可追溯结果 |
 
@@ -191,6 +223,8 @@ flowchart LR
 
 ## 依赖选择
 
-使用随工具链提供的 `moonbitlang/core`，许可为 Apache-2.0。P2 与 CI 固定版本为 `0.10.20+65efd5b93`，P3/P4 本地检查使用 `0.10.21+f125caab5`，实际验收记录见 `DEVELOPMENT.md`。`moon.mod` 的外部依赖保持为空。Base64URL 测试单独导入本项目 ByteReader 包。CBOR 生产包复用 ByteReader，并导入标准库 `encoding/utf8` 和 `sorted_map`；CBOR 测试单独导入 Base64URL 和 WebAuthn，以复用原有官方 fixture 进行 P4 验证，生产依赖仍单向。`webauthn` 复用 ByteReader、CBOR 以及标准库 `encoding/utf8`、`sorted_map` 和仅用于字符串 token 的 `json`，避免依赖不提供本项目重复键与预算契约的完整 JSON 对象解码。密码学、JavaScript FFI 和前端依赖尚未引入。
+使用随工具链提供的 Apache-2.0 `moonbitlang/core`。项目与 CI 固定 `0.10.20+65efd5b93`，P5 在隔离安装的相同工具链上验收。P3/P4 部分历史本地检查使用 `0.10.21+f125caab5`，详细记录见 `DEVELOPMENT.md`。Base64URL、ByteReader、CBOR 与 JSON 字符串解码继续复用现有包及标准库。CBOR 的 WebAuthn 反向导入仅供官方 fixture 的测试，生产依赖保持单向。
 
-P4 未引入 ECC 依赖，也未实现椭圆曲线算术。候选库安全证据和固定工具链兼容性调查记录见 `DEVELOPMENT.md`。
+P5 首次增加外部依赖 `moonbitstack/mooncrypt@0.4.16`，对应 Git tag `v0.4.16` 的提交 `ad5f2e797c60a87e1f6541d1d6ba0dd94df70d9a`。实际解析的间接依赖为 moonbase 0.4.5、moondate 0.1.7、moonseed 0.1.3 和 moonbitlang/x 0.5.7，许可证均为 Apache-2.0。选用的 hash/sha2、sign/ecdsa 及其实际生产依赖路径没有引入平台 FFI。
+
+依赖审查核对了源代码、公钥与签名边界、公开问题及归档身份。选定后端的隔离探针在固定工具链四目标各通过 275 项独立测试，并完成带 `--deny-warn` 的检查、构建和运行。最终仓库全套测试与 CI 结果单独记录。未找到适用于该后端版本的独立第三方安全审计报告，采用范围与公开坐标问题的防护条件详见 `LIMITATIONS.md`。候选比较与探针证据见 `DEVELOPMENT.md`。

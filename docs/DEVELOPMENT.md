@@ -275,3 +275,103 @@ PR #4 的实现提交 `293b7075397d0e2dc4e755b087eec6fccba0137d` 已完成四目
 日志中 checkout 收尾步骤有既有 Node punycode 弃用提示，MoonBit 检查与编译在 `--deny-warn` 下通过。维护者人工审查待完成。后续文档提交的当前 head CI 状态记录在 PR #4。[P4 PR](https://github.com/Ksuserkqy/moonpasskey-lab/pull/4)
 
 曲线点成员、SHA-256/签名、证书链、attestation信任与完整RP流程的状态均为 NOT_IMPLEMENTED。
+
+## Phase 5 密码学后端评估与验证（2026-11-12）
+
+开始前重新核验 PR #4 的状态，确认已经合并，`origin/main` 包含合并提交 `02ddccaf4a9f0c069f03a02b23055e1d8c857339`。从最新远程基线建立 `feat/p5-es256-crypto-verification`，保留 P1–P4 的268项测试。
+
+### 固定工具链与隔离评估
+
+本机已安装的 moon/moonrun 为 `0.1.20261111`，moonc/core 为 `0.10.21+f125caab5`。P5 按项目要求使用独立临时目录中的官方 `0.10.20+65efd5b93` 二进制与匹配 core，实际版本为 moon/moonrun `0.1.20261104`（940aa18）、moonc `v0.10.20+65efd5b93`。core 完成四目标 bundle，命令级 `MOON_HOME` 和 `PATH` 指向该工具链。测试主机为 Darwin arm64，Node.js 为 `v24.18.0`。
+
+工具链与 core 从官方固定归档下载。默认网络通道曾出现 TLS 失败，采用同一官方 HTTPS 地址的直接连接和有限重试后下载成功。[官方二进制归档](https://cli.moonbitlang.com/binaries/0.10.20%2B65efd5b93/moonbit-darwin-aarch64.tar.gz) · [匹配 core 归档](https://cli.moonbitlang.com/cores/core-0.10.20%2B65efd5b93.tar.gz)
+
+### 密码学依赖调查
+
+重新检查候选的实际发布源码、API、测试、依赖树、维护状态及公开问题。采用 `moonbitstack/mooncrypt@0.4.16`。其 registry ZIP 与 Git 标签 `v0.4.16` 对应提交 `ad5f2e797c60a87e1f6541d1d6ba0dd94df70d9a` 的 `moon.mod`、SHA2、ECDSA 和曲线实现文件逐字节一致。下载 ZIP 的 SHA-256 为 `a10b30b3dff211bb7c672cd6547245cc8fd96b5e15e58d56965765a609fe6e78`。[固定发布源码](https://github.com/moonbitstack/mooncrypt/tree/ad5f2e797c60a87e1f6541d1d6ba0dd94df70d9a) · [registry 发布包](https://download.mooncakes.io/user/moonbitstack/mooncrypt/0.4.16.zip)
+
+| 评估项目 | moonbitstack/mooncrypt 0.4.16 | mizchi/experimental_crypto 0.0.2 |
+| --- | --- | --- |
+| SHA-256 | `hash/sha2.hash` 及分块 `Hasher`，显式选择 `Sha256` | `hash` 包提供 SHA-256 |
+| P-256 与外部公钥 | `sign/ecdsa.PublicKey::of_xy` 导入32字节 x/y 并检查曲线方程 | `p256.PublicKey::from_uncompressed` 检查 SEC1 编码、域范围和曲线方程 |
+| ECDSA 验签与格式 | `PublicKey::verify(message, signature)`，P-256 使用64字节 R∥S | `verify(..., Raw)` 使用 R∥S |
+| 哈希次数 | message-based API，内部对 message 执行一次 SHA-256 | message-based API，内部使用 SHA-256 |
+| 标量检查 | 拒绝零、r≥n、s≥n 和错误签名长度 | 源码包含标量范围检查 |
+| native | 固定工具链 check/test/build/run 通过 | P-256 的47项测试通过，`check --deny-warn` 报告49项弃用错误 |
+| js | 固定工具链 check/test/build/run 通过 | P-256 的47项测试通过，`check --deny-warn` 报告49项弃用错误 |
+| wasm | 固定工具链 check/test/build/run 通过 | P-256 的47项测试通过，`check --deny-warn` 报告49项弃用错误 |
+| wasm-gc | 固定工具链 check/test/build/run 通过 | P-256 的47项测试通过，`check --deny-warn` 报告49项弃用错误 |
+| 固定版本兼容 | `0.10.20+65efd5b93` 实测通过 | P-256 测试可运行，当前发布的警告门槛未通过，hash 测试另含已移除的 `try?` 语法 |
+| License | Apache-2.0 | Apache-2.0 |
+| 维护证据 | 调查时公开仓库最近更新为2026-11-11，存在持续发布和 CI | 调查时源码 main 为 `d5a3c7005515a02fd9a0260cffaae7b738e69f6b`，最近更新为2026-06-02 |
+| 独立安全审计 | 未发现独立审计报告，存在公开输入校验问题和算法测试 | 作者明确标记实验性及未经独立审计 |
+| 结论 | 采用已测试的验签调用路径，保留 P4 坐标范围检查 | 固定工具链的严格检查及维护适配仍需修复 |
+
+mooncrypt 公开 issue #1 记录 `PublicKey::new/with_hash` 对 x≥p 或 y≥p 的接受问题，以及 Ed25519 的一个编码问题。固定发布的 `of_xy` 同样只检查宽度和模 p 曲线方程。适配层要求输入来自 P4 的不可变 `Es256PublicKeyParameters`，该类型的两个公开校验入口均已严格检查 x/y 长度及 `< p`。另用固定工具链在隔离模块验证，外部包对只读 `pub struct` 的直接构造和 record update 均返回编译错误4036。[公开 issue #1](https://github.com/moonbitstack/mooncrypt/issues/1) · [固定构造器源码](https://github.com/moonbitstack/mooncrypt/blob/ad5f2e797c60a87e1f6541d1d6ba0dd94df70d9a/src/sign/ecdsa/ecdsa.mbt)
+
+本轮查询公开仓库的安全 advisory 列表为空，已公开的 issue #1 仍列入评估。第三方独立审计证据缺失作为依赖限制保留。所选公钥导入和验签路径处理公开输入，评估同时检查算法向量、边界行为与实际四目标结果。[安全 advisory 列表](https://github.com/moonbitstack/mooncrypt/security/advisories) · [另一候选的安全说明](https://github.com/mizchi/experimental_crypto/blob/d5a3c7005515a02fd9a0260cffaae7b738e69f6b/README.md)
+
+experimental_crypto 的 registry ZIP SHA-256 为 `e9146cd239859e873ec1a48ee01f3a625784a587603f40132d23c21ef2d70289`，发布包 P-256 源码与上述 main 提交一致，唯一外部模块依赖为 `moonbitlang/x@0.4.43`。固定工具链下，其47项 P-256 测试在四目标均通过。四目标 `check --deny-warn` 均出现49项弃用错误，涉及可达的 aead、asn1、hash、pkix 等包，hash 黑盒测试还使用已经移除的 `try?` 语法。所选算法路径未发现 FFI。上述源码与兼容性结果支持本轮采用 mooncrypt。[固定候选源码](https://github.com/mizchi/experimental_crypto/tree/d5a3c7005515a02fd9a0260cffaae7b738e69f6b) · [registry 发布包](https://download.mooncakes.io/user/mizchi/experimental_crypto/0.0.2.zip)
+
+另调查 RustCrypto `p256@0.14.0`，该版本使用 MIT OR Apache-2.0，Rust 工具链最低版本为1.85。找到 zkSecurity 在2025年针对固定较早提交进行的 P-256 验证审计，其范围包括32位验证路径。该报告不能直接覆盖当前版本及所有目标。MoonBit 的 native、js、wasm、wasm-gc 适配桥接尚待实现和测试，本轮采用已有四目标实际运行证据的 MoonBit 依赖。[RustCrypto P-256](https://github.com/RustCrypto/elliptic-curves/tree/p256/v0.14.0/p256) · [审计范围](https://reports.zksecurity.xyz/reports/near-p256/)
+
+该 Rust 发布包内的参考 Cargo.lock 使用 crypto-bigint 0.7.5 和 ctutils 0.4.2，分别落入 RUSTSEC-2026-0387 与 RUSTSEC-2026-0385 的影响范围。后续采用此方案时需要解析到已修复的 crypto-bigint ≥0.7.6、ctutils ≥0.4.4，并核验适用路径。当前 MoonBit 依赖树没有这些 Rust 模块。[crypto-bigint 公告](https://rustsec.org/advisories/RUSTSEC-2026-0387.html) · [ctutils 公告](https://rustsec.org/advisories/RUSTSEC-2026-0385.html)
+
+实际解析的外部模块依赖树包含以下固定版本，全部声明 Apache-2.0。`moonseed` 根包提供纯 MoonBit 接口，平台熵源位于另一个 `system` 包。审查 SHA2、ECDSA、ASN.1、curve、spec、internal/ec、HMAC、moondate 与 moonseed 根包，所选生产路径没有 FFI 声明或 native stub。
+
+```text
+moonbitstack/mooncrypt@0.4.16
+├── moonbitstack/moonbase@0.4.5
+├── moonbitstack/moondate@0.1.7
+│   └── moonbitlang/x@0.5.7
+└── moonbitstack/moonseed@0.1.3
+```
+
+### 隔离后端探针结果
+
+独立探针使用固定 Wycheproof 提交 `65ca494727a52944c204441c860b039e6786b99b` 的完整 `ecdsa_secp256r1_sha256_p1363_test.json`，包含262个用例，其中173 valid、89 invalid。使用每组原始 `publicKey.uncompressed` 导入公钥，保留原始消息和签名字节。241个签名为64字节，另外21个覆盖不同长度。该文件 SHA-256 为 `c60de693930e386c3a5472d08081623ef8504decc54b38ac01ec6b2a2575c986`，许可为 Apache-2.0。[固定 Wycheproof 文件](https://github.com/C2SP/wycheproof/blob/65ca494727a52944c204441c860b039e6786b99b/testvectors_v1/ecdsa_secp256r1_sha256_p1363_test.json)
+
+另有13项探针覆盖 SHA-256 的 abc、11种由 Python hashlib 独立核验的输入长度，以及全零坐标的曲线点拒绝。长度包括0、1、55、56、63、64、65、127、128、129和1 MiB。探针共275个测试块。生产入口单独验证 SHA-256 abc 和 RFC 6979 §A.2.5 sample 签名。
+
+| 目标 | check --deny-warn | test --deny-warn | build --deny-warn | run --deny-warn |
+| --- | --- | --- | --- | --- |
+| wasm | PASS | 275通过，0失败 | PASS | SHA-256 + RFC6979 PASS |
+| wasm-gc | PASS | 275通过，0失败 | PASS | SHA-256 + RFC6979 PASS |
+| js | PASS | 275通过，0失败 | PASS | SHA-256 + RFC6979 PASS |
+| native | PASS | 275通过，0失败 | PASS | SHA-256 + RFC6979 PASS |
+
+补充核验使用本机较新的 `0.10.21`，上游20项 wasm 测试及275项独立 JS 探针通过，`--deny-warn` 检查则报告 upstream `internal/ec/ec.mbt` 的 `BigInt::from_string` 弃用诊断。固定 `0.10.20` 的上述四目标检查没有该诊断。后续升级工具链时需要重新核验依赖兼容性。
+
+### 项目集成与最终验收
+
+新增 `webauthn/crypto.mbt`，提供经 P-256 点导入后才能取得的 `ValidatedEs256PublicKey`、原始字节 SHA-256、严格 raw64 验签、签名消息构造和 `verify_webauthn_es256_assertion_signature`。格式错误返回 `Err(CryptoError)`，合法编码的无效签名返回 `Ok(false)`。不支持的算法继续由 P4 的 `ParseError.ErrorKind.UnsupportedAlgorithm` 报告。P4 参数接口及 `CurvePointValidation.NotPerformed` 继续表示参数层执行过的检查，点验证状态由新的封装类型提供。
+
+W3C §6.5.5 要求 ES256 Assertion 使用 ASN.1 DER，原任务书要求 Assertion 输入 raw64。维护者已明确选择按 W3C 提供 DER Assertion 入口，基础 ECDSA 入口保留严格 raw64。DER 入口复用 MoonCrypt ASN.1 解析器，先限制8–72字节，再检查完整 SEQUENCE 恰含两个最小编码的非负 INTEGER，转换为 R∥S 后调用既有验签原语。新增 `InvalidSignatureEncoding`，区分 DER 结构错误和标量范围错误。MoonCrypt ASN.1 上游14项测试另在固定工具链四目标全部通过。Phase 5 所要求的 ES256 功能已实现，缺少独立后端审计等条件保留为 `PASS_WITH_WARNINGS`。[WebAuthn §6.5.5](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-signature-attestation-types)
+
+保留 P1–P4 的268个测试块，新增61个，全仓库共329个。`crypto_test.mbt` 有18个合成回归块，覆盖7个公钥/参数保护、6个签名边界、1个原始视图 SHA 检查和4个拼接/JSON 原文检查。`crypto_der_test.mbt` 有23个 DER 回归块。`crypto_vectors_test.mbt` 有19个测试块，包含完整262例 Wycheproof raw、15例 NIST SigVer、12例 NIST PKV、12个公开 SHA 结果、1个明确标记的合成65字节边界以及3个 W3C Assertion 示例。`crypto_der_vectors_wbtest.mbt` 的1个测试块包含完整484例 Wycheproof DER。公开独立向量条目共788例，其中明确无效的外部条目419例，两套 Wycheproof 数据之间存在部分共享输入。上述隔离探针的275个测试块属于依赖评估阶段。
+
+3个 W3C 集成测试复用 P3 原始 fixture，将规范原始 DER 签名直接交给 Assertion 入口。每个测试覆盖任务要求的9类场景，合计3个成功和30个 Assertion 编码拒绝/验签失败断言，另检查预哈希导致重复哈希的失败和 raw 原语对 DER 的长度错误。fixture 中另有从规范 DER 整数派生的 raw64 数据，供基础 raw64 原语交叉检查，来源明确标记。来源和许可证见 `webauthn/CRYPTO-VECTORS-NOTICE.md`。
+
+完成 `moon info`、`moon fmt`、`moon fmt --check` 及 `git diff --check`，生成接口只在 WebAuthn 包增加新的类型和入口，原有函数签名保持兼容。使用上述固定工具链对四目标执行以下完整命令。
+
+```sh
+moon check --target TARGET --deny-warn
+moon test --target TARGET --deny-warn
+moon build --target TARGET --deny-warn
+moon run cmd/main --target TARGET --deny-warn
+```
+
+| 目标 | 通过 | 失败 | check | build | run |
+| --- | ---: | ---: | --- | --- | --- |
+| wasm | 329 | 0 | PASS | PASS | Hello |
+| wasm-gc | 329 | 0 | PASS | PASS | Hello |
+| js | 329 | 0 | PASS | PASS | Hello |
+| native | 329 | 0 | PASS | PASS | Hello |
+
+完成 AI 静态代码审查和向量字节独立核对。两套 Wycheproof 的112/113个公钥及262/484组 tcId/message/signature 与各自固定源文件逐项完全一致。NIST 15例验签结果、3个 W3C 原始 DER 签名另由 OpenSSL 复核。维护者人工验收仍待 PR 审查。
+
+PR #5 的实现提交 `4bd44211cc6a64b0907531d50a8791a4b458d558` 首轮 CI 在四个目标的 `moon info` 前置依赖解析处失败。全新 runner 尚未初始化 Mooncakes registry，无法找到固定 MoonCrypt 元数据，测试步骤未执行。工作流增加 `moon update` 获取固定依赖元数据。[首次执行日志](https://github.com/Ksuserkqy/moonpasskey-lab/actions/runs/43122248330)
+
+修正提交 `811007bb3d9d15ad30a588fdaa9326211549d6db` 的四目标 CI 全部成功。逐个检查 job 结果和日志，确认 Ubuntu24.04、moon/moonrun `0.1.20261104`、moonc/core `0.10.20+65efd5b93`、Node `v24.22.2`。wasm、wasm-gc、js、native 每个目标均为329项通过、0失败，格式、registry 初始化、接口比对、check/test/build/run 全部成功。[四目标 Actions 43122438670](https://github.com/Ksuserkqy/moonpasskey-lab/actions/runs/43122438670)
+
+后续文档收尾提交的当前 CI 状态见 PR #5。P5 功能已完成上述验收，PR 保持 OPEN，维护者人工审查待进行。[Phase 5 PR](https://github.com/Ksuserkqy/moonpasskey-lab/pull/5)

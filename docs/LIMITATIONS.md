@@ -2,7 +2,7 @@
 
 ## 已实现范围
 
-Phase 1 提供 Base64URL 编解码和 ByteReader；Phase 2 新增有界 CBOR 解码、源范围、语义重复键检测、可配置预算和 CTAP2 canonical profile；Phase 3 新增 ClientDataJSON、AuthenticatorData 与 AttestationObject 的结构解析。Phase 4 提供显式 ES256 参数验证。结构解析、参数验证、密码学验证、信任判断与认证结论须分别理解。
+Phase 1 提供 Base64URL 编解码和 ByteReader，Phase 2 提供有界 CBOR，Phase 3 提供 WebAuthn 结构解析，Phase 4 提供显式 ES256 参数验证。Phase 5 增加 P-256 点导入、SHA-256、raw ES256 验签和 assertion 签名消息构造。各入口分别记录已检查的属性。
 
 P2 历史验收基线为 107 个测试，其中 Base64URL 24 个、ByteReader 20 个、CBOR 63 个，四目标当时均为 107 通过、0 失败。P3 首次验收新增 99 项，总计 206 项且四目标通过。审查修正保留既有覆盖（重写外层未知字段策略测试），新增 Map/Array 与 W3C §16 官方向量回归；当前测试数量及四目标结果见开发记录。远程 CI 状态见对应 PR，详细本地证据见 [开发记录](DEVELOPMENT.md)。
 
@@ -62,8 +62,8 @@ P2 历史验收基线为 107 个测试，其中 Base64URL 24 个、ByteReader 20
 | none statement 语法 | `IMPLEMENTED` | `attStmt` 必须为空 map；状态 `NoneStructureChecked` 仅表达结构检查 |
 | 其他 Map/Array statement 格式 | `PARTIAL` | 保留 fmt 与原始结构，状态 `FormatNotValidated`；未实现具体格式验证 |
 | compound 等数组型格式的语义验证 | `NOT_IMPLEMENTED` | 允许 Array 容器并保留 CBOR；未验证其逐元素格式规则、组合策略或密码学内容 |
-| COSE Key 语义验证整体 | `PARTIAL` | P3 仍只做结构；P4 显式支持 ES256 参数与域范围，不检查曲线点或其他算法 |
-| WebAuthn 安全验证流程 | `NOT_IMPLEMENTED` | 未建立 challenge、origin、RP ID、签名、证书、信任或认证结论 |
+| COSE Key 语义验证整体 | `PARTIAL` | P4 显式支持 ES256 参数与域范围，P5 通过另一入口检查 P-256 点，其他算法待实现 |
+| WebAuthn RP 验证流程 | `NOT_IMPLEMENTED` | challenge、origin、RP ID、策略、证书和信任验证待实现 |
 
 ### ClientDataJSON
 
@@ -76,7 +76,7 @@ P2 历史验收基线为 107 个测试，其中 Base64URL 24 个、ByteReader 20
 ### AuthenticatorData 与 AttestationObject
 
 - `BS=1 && BE=0` 被拒绝；UP、UV、BE、BS 只是输入声明。RFU 位原样保留而不拒绝是本项目兼容选择，不代表已检查 authenticator 的 RFU 必须为零的生成约束。没有添加 `UV ⇒ UP` 规则。
-- credential ID 长度按 wire 结构允许 0 至 1023。零长度接受只覆盖 §6.5.1 长度字段的结构边界，不表示满足 §4 Credential ID 的生成与安全要求。P3 公钥字段只要求 Map；其 ES256 参数可显式调用 P4 验证，密钥数学有效性尚未检查。
+- credential ID 长度按 wire 结构允许 0 至 1023。零长度接受只覆盖 §6.5.1 长度字段的结构边界，不表示满足 §4 Credential ID 的生成与安全要求。P3 公钥字段要求 Map，后续显式调用 P4 参数检查与 P5 点导入才能取得 `ValidatedEs256PublicKey`。
 - 扩展必须是 map，标识符按 §9.1 的 text、最多 32 octets、限定可打印 ASCII 检查。未知标识符与任意当前 CBOR 支持类型的值被保留，扩展具体语义尚未验证。
 - 外层 AttestationObject 只允许且必须包含 fmt/authData/attStmt，非 text 键和未知键均拒绝；attStmt 允许 Map 或 Array，Map 内未知字段保留。`fmt` 按 §8.1 的同类标识符规则检查，未检查是否已经登记；none 以外的格式不作格式级验证。内嵌 authData 要求 AT，以遵守 attestation 数据结构要求。
 - 三个 WebAuthn CBOR 位置（外层、公钥、ED）均严格使用 `Ctap2Canonical`。这是对 WebAuthn §2.4 decoder SHOULD 的本项目选择；通用 CBOR `Generic` 仍接受其已支持的非 canonical 输入。当前 profile 对 float、tag 和 indefinite-length 的限制继续适用。[WebAuthn §2.4、§3](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-all-conformance-classes)
@@ -96,23 +96,56 @@ AT 公钥、ED 扩展共享同一节点预算，AttestationObject 外层树的�
 
 - `IMPLEMENTED`：独立 canonical 字节入口与 AT 显式方法、kty=2、alg=-7、crv=1、x/y Byte String 各 32 字节、保留前导零、每个坐标 < P-256 素数。
 - `IMPLEMENTED`：拒绝缺字段、boolean y 压缩表示、d=-4 私钥、kid/key_ops/Base IV；未知 integer/text label 明确报告 UnsupportedCoseParameter，非 COSE label 类型报告 WrongType。通用 RFC 9052 允许更广泛的参数，未知拒绝是本入口的严格支持策略。
-- `NOT_IMPLEMENTED`：曲线点成员验证、签名/SHA-256、证书和信任。即使 x=y=0 或其他不在曲线上的点，只要参数类型、长度及域范围符合，也可能返回参数结果；point_validation 始终为 NotPerformed，不可用于认证判断。
+- P4 参数入口可接受满足类型、长度和域范围的 off-curve 坐标，包括 x=y=0，结果中的 `point_validation` 始终为 `NotPerformed`。P5 的点导入入口另外执行曲线方程检查，只有成功后才能取得 `ValidatedEs256PublicKey`。
 - `NOT_IMPLEMENTED`：ES384、ES512、RS256、PS256、EdDSA 等算法的语义验证；有效整数 alg 非 -7 返回 UnsupportedAlgorithm，绝不视为 ES256。原有 P3 结构解析不因此拒绝它们。
-- `PARTIAL`：ES256 公钥有效性整体。没有确认适合本任务安全要求并经固定工具链四目标验证的 ECC 依赖，因此不引入依赖，也不手写 256-bit 椭圆曲线运算。候选与未确认事项见 DEVELOPMENT。
+- P5 引入固定 MoonCrypt 0.4.16 后端处理 P-256 曲线点和 ES256 验签，P4 参数 API 继续保存原始检查状态与范围。
 - 函数与类型名中的 Parameters、公开 NotPerformed 状态和原始范围必须保留到调用层，不能将参数成功改写为密码学验证成功。
+
+## P5 密码学范围与后端条件
+
+| 能力 | 状态 | 当前范围 |
+| --- | --- | --- |
+| P-256 公钥点导入 | `IMPLEMENTED` | 接收 P4 已检查的 ES256 参数，由后端检查曲线方程后构造封装类型 |
+| SHA-256 | `IMPLEMENTED` | 对原始 BytesView 计算 32 字节结果，支持空数据和子视图 |
+| ES256 raw 签名验证 | `IMPLEMENTED` | 恰好 64 字节 `R || S`，`1 <= R,S < n`，message-based SHA-256 |
+| assertion 签名消息构造 | `IMPLEMENTED` | 原始 authData 拼接 `SHA256(原始 clientDataJSON)` |
+| WebAuthn ES256 assertion 验签 | `IMPLEMENTED` | 严格 DER 签名解码、原始签名消息构造与 P-256/SHA-256 验签 |
+| 完整 RP 验证流程 | `NOT_IMPLEMENTED` | challenge、origin、RP ID、UP/UV 策略、计数器风险与认证结论待实现 |
+| Attestation 证书链与信任验证 | `NOT_IMPLEMENTED` | 逐格式签名、X.509 链、可信根和 attestation 信任策略待实现 |
+
+### 公钥与签名契约
+
+`ValidatedEs256PublicKey` 的后端字段私有，导入需要 P4 不可变参数记录提供的 `kty=2`、`alg=-7`、`crv=1`、32 字节坐标及严格 `< p` 保证。MoonCrypt 的 affine 导入执行曲线方程检查。P-256 的 cofactor 为一，导入的 affine 点具有对应群成员属性。前导零与原始源范围完整保留，`parameters()` 中的 P4 `NotPerformed` 继续描述其参数检查阶段。
+
+MoonCrypt 0.4.16 的公开问题 #1 包含 ECDSA 非规范坐标接受问题。本项目持续要求 P4 的 `< p` 检查先于后端导入，并通过该问题的 `x=p` 复现坐标建立回归测试。升级或替换后端时须重新核对这一入口约束。[MoonCrypt issue #1](https://github.com/moonbitstack/mooncrypt/issues/1)
+
+Raw 验签要求固定 64 字节，在后端计算前拒绝长度错误、R/S 为零或不小于群阶的情况。合法签名编码的验证结果为 `Ok(true/false)`，格式与执行错误为 `Err(CryptoError)`。该 API 使用原始 message，由后端计算一次 SHA-256，接受合法的 low-S 和 high-S。
+
+`verify_webauthn_es256_assertion_signature` 按 WebAuthn §6.5.5 接收 8 至 72 字节 ASN.1 DER 签名。它复用 MoonCrypt ASN.1 解析器，要求完整 SEQUENCE 恰好包含两个最短非负 INTEGER，拒绝非最短或 indefinite 长度、负数、冗余零、截断和尾随数据。必要符号零被移除，32 字节以内的短整数补齐后进入已有 R/S 范围检查。DER 错误返回 `InvalidSignatureEncoding`，零、幅值超过 32 字节或不小于群阶的标量返回带 R/S 名称的 `InvalidSignatureScalar`。通用 COSE raw64 入口继续由 `verify_es256_signature` 提供。[WebAuthn §6.5.5](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-signature-attestation-types)
+
+SHA-256 与签名消息构造消费调用方提供的原始字节 view。空 authenticatorData 和空 clientDataJSON 可用于这些字节级接口，JSON 语义与 RP 数据有效性由对应层负责。签名消息构造检查 `authenticatorData.length + 32` 的 Int32 溢出边界。读取文件、跨请求总内存与 CPU 预算由调用层管理。
+
+### 依赖、审查与跨平台证据
+
+直接依赖固定为 `moonbitstack/mooncrypt@0.4.16`，Git tag 指向 `ad5f2e797c60a87e1f6541d1d6ba0dd94df70d9a`。本轮解析得到 moonbase 0.4.5、moondate 0.1.7、moonseed 0.1.3、moonbitlang/x 0.5.7，许可证均为 Apache-2.0。选定生产调用路径使用纯 MoonBit SHA-256、P-256 与 ECDSA，四个目标共享相同实现。
+
+源代码、公开问题、版本化归档与独立向量已经核对。未找到 MoonCrypt 0.4.16 的独立第三方安全审计报告，本轮源码审查和回归测试为项目自身证据。公开 GitHub advisory 查询结果只描述查询范围，无法保证不存在其他安全问题。后端带有更多算法及私钥功能，本项目公开适配接口仅覆盖本阶段的 SHA-256、P-256 公钥和 ES256 验签。
+
+隔离探针实际使用固定 `0.10.20+65efd5b93` 工具链，在 wasm、wasm-gc、js、native 各完成 275 项独立测试，并通过带 `--deny-warn` 的检查、生产构建和运行。最终仓库完整回归与远程 CI 状态见开发记录和对应 PR。较新 `0.10.21` 对依赖源码报告弃用警告，后续工具链变更需重新核验兼容性。[开发记录](DEVELOPMENT.md)
 
 ## 尚未实现的能力
 
 | 功能 | 当前状态 |
 | --- | --- |
-| COSE 整体语义与公钥有效性 | `PARTIAL`：ES256 参数已实现，其他算法和曲线点未实现 |
+| COSE 整体语义与公钥有效性 | `PARTIAL`，ES256 参数与显式 P-256 点导入已实现，其他算法待实现 |
 | CBOR tags、floats、indefinite-length 支持 | 当前明确 unsupported |
 | challenge、origin、RP ID、ceremony 及计数器风险等安全规则 | `NOT_IMPLEMENTED`；本轮仅加入上述结构约束 |
-| SHA-256、签名、证书、attestation 信任验证 | 待实现 |
+| ES384、ES512、RS256、PS256、EdDSA 等密码学能力 | `NOT_IMPLEMENTED` |
+| 证书链、attestation 逐格式签名与信任验证 | `NOT_IMPLEMENTED` |
 | 文件分析 CLI、报告导出、退出码契约 | 当前入口仅输出 Hello |
 | Vue Dashboard、JS/Wasm 前端集成 | 待实现 |
 | 互操作矩阵、真实设备及浏览器测试 | 待实现 |
 | 持续集成测试流水线 | 已配置四目标检查、测试、构建、格式和接口验证，实际远程状态见对应 PR |
 | 模糊测试、性能基准 | 待建立 |
 
-当前操作结果表达编码转换、读取和 CBOR 结构解析是否成功。认证结论需要后续完整验证流程。完整 WebAuthn Level 3 符合性尚未验证。[WebAuthn Level 3 §7](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-rp-operations)
+各入口分别返回结构、参数、曲线点或签名验证结果。完整 RP 验证和 WebAuthn Level 3 符合性仍需对应流程与测试。[WebAuthn Level 3 §7](https://www.w3.org/TR/2026/REC-webauthn-3-20260825/#sctn-rp-operations)

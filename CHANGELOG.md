@@ -34,7 +34,17 @@
 - 新增 canonical 字节入口 `validate_es256_credential_public_key` 和显式 `AttestedCredentialData::validate_es256`，返回带原始编码、源范围与 NotPerformed 曲线点状态的 Es256PublicKeyParameters。
 - 检查 EC2/ES256/P-256 组合、五个必需参数、坐标32字节与域范围、压缩表示、私钥和 optional；未知参数明确不支持。
 - P3 结构解析保持兼容，不自动触发 ES256 验证，不将其他算法当成 ES256；错误枚举新增相应分类，穷尽匹配调用方需处理新增变体。
-- 复用已有 W3C 官方 fixture，补充参数负例、坐标边界、范围与跨模块回归。未引入 ECC 依赖；曲线点成员、签名和信任验证仍未实现。
+- 复用已有 W3C 官方 fixture，补充参数负例、坐标边界、范围与跨模块回归。P4 阶段仅完成参数层，曲线点与签名能力由下述 P5 扩展。
+
+### Phase 5 ES256 密码学验证
+
+- 引入固定版本 MoonCrypt 0.4.16，复用纯 MoonBit P-256 点检查、SHA-256 和 ECDSA 验签实现，记录候选比较、依赖树与安全证据。
+- 新增 `ValidatedEs256PublicKey` 和显式导入入口，保留 P4 参数 API、原始坐标、编码、范围及 NotPerformed 的参数层语义。
+- 新增原始字节 `sha256` 和严格 raw64 `verify_es256_signature`，区分长度/标量错误与合法编码的验签失败，接受合法 high-S 签名。
+- 新增原始 `authenticatorData || SHA256(clientDataJSON)` 构造入口和严格 DER Assertion 验签接口，按维护者确认采用 WebAuthn §6.5.5 线格式，基础 ECDSA 入口继续使用 raw64。
+- 增加固定版本 Wycheproof、NIST CAVP 和 SHA-256 独立向量及合成边界回归，保留 P1–P4 全部测试与原有官方字节。
+- 已评估的后端缺少可核验的独立安全审计。其公开坐标范围检查缺口由 P4 强制范围检查覆盖，具体限制和四目标证据见开发记录。
+- CI 在解析外部依赖前初始化 Mooncakes registry，供全新 runner 获取固定版本元数据。
 
 ### 文档与仓库流程
 
@@ -47,4 +57,4 @@
 
 `Generic` 与 `Ctap2Canonical` 整体状态均为 `PARTIAL`。IEEE 754 binary16/32/64 的结构化结果和值模型为 `NOT_IMPLEMENTED`，完整 payload 返回 `UnsupportedFloat`，截断 payload 返回读取错误。Generic 的 tag 与 indefinite-length 结构解析为 `NOT_IMPLEMENTED`，CTAP profile 对相应禁止编码返回明确错误。ES256 参数约束由 P4 提供；CTAP 命令语义、其他算法和设备互操作验证待实现。[当前限制](docs/LIMITATIONS.md) · [标准映射](docs/SPEC_MAPPING.md)
 
-ClientDataJSON、AuthenticatorData 与 AttestationObject（Map/Array attStmt）的通用结构解析已实现；整体协议覆盖为 PARTIAL。compound 等逐格式语义、ES256 以外的 COSE 语义、字段信任与曲线点/密码学验证、分析 CLI 和 Web Dashboard 为 NOT_IMPLEMENTED。现有解析结果表达结构与编码检查结果，完整 WebAuthn Level 3 符合性仍待建立验证证据。[架构与后续模块](docs/ARCHITECTURE.md)
+ClientDataJSON、AuthenticatorData 与 AttestationObject（Map/Array attStmt）的通用结构解析已实现，P5 增加 ES256 点与签名原语，整体协议覆盖为 PARTIAL。compound 等逐格式语义、ES256 以外的 COSE 语义、字段信任、分析 CLI 和 Web Dashboard 为 NOT_IMPLEMENTED。完整 WebAuthn Level 3 符合性仍待建立验证证据。[架构与后续模块](docs/ARCHITECTURE.md)

@@ -55,6 +55,9 @@ jobs:
       - name: Check formatting
         run: moon fmt --check
 
+      - name: Update Mooncakes registry
+        run: moon update
+
       - name: Verify generated public interfaces
         run: |
           moon info
