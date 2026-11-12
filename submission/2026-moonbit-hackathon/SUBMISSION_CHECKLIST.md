@@ -2,6 +2,8 @@
 
 截至 2026-11-12，功能冻结历史基线为 `582de40`，功能分支已验提交为 `85e63f3c48c43ae7d6303a6807697dcf4d91761e`。勾选表示已有对应仓库证据，实际报名和审核进度由维护者填写。规则依据和待确认口径见 [参赛资格核对](ELIGIBILITY.md)。
 
+完整工程已随 PR #10 合入 main `fee2974859779b11a5264594234b6812a54b3dd8`，下列旧提交链接作为历史快照保留。[main CI](https://github.com/Ksuserkqy/moonpasskey-lab/actions/runs/43217448307) · [最终验收](FINAL_READINESS.md)
+
 ## 已有工程材料
 
 - [x] 公开 GitHub 仓库、Apache-2.0 许可证、可追踪提交与 PR 历史。
@@ -11,6 +13,7 @@
 - [x] 功能分支 `85e63f3c48c43ae7d6303a6807697dcf4d91761e` 六项 CI success。[运行 43199498333](https://github.com/Ksuserkqy/moonpasskey-lab/actions/runs/43199498333)
 - [x] main `6947564bccd421bccef8e3337ff5bab4db6347cc` 六项 CI success。[运行 43204987911](https://github.com/Ksuserkqy/moonpasskey-lab/actions/runs/43204987911)
 - [x] Safari/macOS preferred 真实 Passkey 的脱敏报告与来源记录。
+- [x] 维护者确认的 Chrome/macOS required 注册及两次 Assertion，三份原字节脱敏报告已归档，现有检查器通过。
 - [x] Ubuntu22/Nginx 隔离实测、部署操作说明及回滚说明。
 - [x] 自有源码逐文件盘点，生产、测试、fixture 与工具分列。
 
@@ -38,4 +41,4 @@
 
 ## 范围声明
 
-新 UV Required、iPhone 与 Chrome 设备验收仍待完成，真实公网部署和 Let's Encrypt 仍待执行。当前材料只使用已保存的真实 Safari 报告以及明确标注的合成测试记录。完整 attestation 信任、生产账户认证与恢复的支持状态见项目限制文档。[限制说明](../../docs/LIMITATIONS.md) · [设备矩阵](../../docs/ASSERTION-INTEROP.md)
+Chrome/macOS required 的 A5 已通过。Safari required、Safari 重复认证、Google Password Manager、iPhone 与其他设备继续按矩阵待验，真实公网部署和 Let's Encrypt 仍待执行。当前材料包含历史 Safari、新 Chrome 脱敏报告及明确标注的合成测试记录。Chrome报告的 Provider 来源保持 UNKNOWN。完整 attestation 信任、生产账户认证与恢复的支持状态见项目限制文档。[限制说明](../../docs/LIMITATIONS.md) · [设备矩阵](../../docs/ASSERTION-INTEROP.md)

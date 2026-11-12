@@ -27,13 +27,17 @@ RP ID 只做当前 ASCII 域名标签语法检查，不完成 PSL、IDNA、域�
 | 验证范围 | 实际证据 |
 | --- | --- |
 | Safari/macOS 历史流程 | 维护者完成真实平台 Passkey 测试注册与 Assertion；UV preferred / 实际 true，DER 有效、Core 12 项 PASS |
-| Provider 来源 | iCloud Keychain / 平台 Passkey 为维护者选择记录，`MAINTAINER_SELECTED`；协议字段未独立证明 Provider 身份 |
+| 历史 Provider 来源 | iCloud Keychain / 平台 Passkey 为维护者选择记录，`MAINTAINER_SELECTED`；协议字段未独立证明 Provider 身份 |
 | 历史事务信息 | 当时成功路径在提交后响应，但旧导出无显式事务版本；新格式字段不回填，旧字段保持 UNKNOWN |
-| 新设备矩阵 | Safari required、iOS、Chrome、Windows Hello、USB / NFC FIDO2 等未完成；iOS 跨设备验收受已验证 HTTPS 入口缺项阻塞 |
+| Chrome/macOS Required | 维护者确认实际浏览器为 Chrome；三份报告记录本地 required 注册和两次 Assertion PASS、实际 UV=true，两次 DER 验签成功；provider 标签为 1Password，来源保持 `UNKNOWN` |
+| 新记录的事务与计数器 | 注册及两次 Assertion 的数据库版本为初始 0、0→1、1→2；签名计数器均为 0，Assertion 报告为 `NOT_SUPPORTED`。脱敏报告的同一凭证关联需维护者流程记录确认 |
+| 待完成设备矩阵 | Safari required 及 Safari 重复认证、iOS、Chrome/Google Password Manager、Windows Hello、USB / NFC FIDO2 等仍待完成；iOS 跨设备验收受已验证 HTTPS 入口缺项阻塞 |
 | Ubuntu / Nginx | 隔离虚拟机中实际运行配置、TLS、代理与拒绝路径测试；证书、端口和认证材料均为临时合成资源 |
 | 公网部署 | 真实服务器、域名 / DNS、Let's Encrypt 申请及续期、公网 HTTPS 与新设备访问均未执行 |
 
 本地合成 TLS、签名和导入演示的 PASS 不增加真实设备或公网部署证据。新报告的 schema 校验通过，只证明格式与脱敏符合当前契约，不证明设备流程发生。
+
+新 Chrome 注册报告的 signature、counter 和 attestation_trust 均为 `NOT_PERFORMED`，两次 Assertion 的 signature 为 PASS。实际环境、原始脱敏报告与记录范围见 [设备验收记录](../../docs/ASSERTION-INTEROP.md)。
 
 ## 测试和审查如何解读
 

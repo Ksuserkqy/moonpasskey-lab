@@ -64,7 +64,7 @@ MoonPasskey Lab 服务于正在接入 Passkey 的开发者、学习协议的学�
 
 2026-11-12，维护者在 Safari/macOS 亲自完成系统 Passkey 注册和认证。历史脱敏导出记录请求 UV=preferred、实际 UV=true，ES256/P-256 检查通过、DER 签名有效，Core 12 项 PASS。Provider 按维护者选择记为 iCloud Keychain / 平台 Passkey，来源为 `MAINTAINER_SELECTED`。旧报告未记录显式事务版本，不能补写为新格式证据。
 
-Ubuntu 22.04 隔离虚拟机中实际执行了 Nginx、上游 TLS 验证、Basic Auth、代理传输与拒绝路径测试。公网域名、真实服务器、Let's Encrypt 申请或续期没有执行。Safari UV required、iOS、Chrome 等新设备矩阵尚未验收。
+新归档的 Chrome/macOS UV Required 测试注册与两次 Assertion 均为 Core PASS、实际 UV=true，两次 Assertion 的 DER 签名有效，三份报告均为数据库 COMMITTED，版本分别为 null→0、0→1、1→2。维护者确认实际使用 Chrome，报告环境为 MacBookAir / MacOS 27.2 / Chrome 157.0.8103.39，Provider 标签为 1Password、来源保持 UNKNOWN。两次 Assertion 的 signCount 为 0、计数器状态为 NOT_SUPPORTED。Chrome UV Required（A5）已通过。Safari UV Required（A1）、Google Password Manager（A4）、Safari 重复认证（A6）及 iOS 仍待验收。Ubuntu 22.04 隔离虚拟机中实际执行了 Nginx、上游 TLS 验证、Basic Auth、代理传输与拒绝路径测试。公网域名、真实服务器、Let's Encrypt 申请或续期没有执行。[设备记录](../../docs/ASSERTION-INTEROP.md)
 
 固定验收环境为 MoonBit `0.10.20+65efd5b93`、MoonCrypt `0.4.16`、Node.js `24.18.0`。详细命令、历史环境差异与结果保存在开发和部署记录中，远程 CI 以对应提交的实际记录为准。
 

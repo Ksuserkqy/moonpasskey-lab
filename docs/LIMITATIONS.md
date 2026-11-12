@@ -143,7 +143,7 @@ SHA-256 与签名消息构造消费调用方提供的原始字节 view。空 aut
 | 凭证与账户绑定 | `IMPLEMENTED` | credential ID 同时匹配可信记录和非空 allowCredentials，存在的 userHandle 匹配可信账户句柄 |
 | Discoverable 账户查找 | Core 外部责任 | 调用方先解析 userHandle 对应账户并选出可信记录，Core 要求句柄存在且匹配 |
 | Counter 风险与状态建议 | `IMPLEMENTED` | 区分0→0、递增与非递增，默认 ReportOnly，可显式 Reject，只有成功结果携带更新建议 |
-| 真实设备与浏览器互操作 | `PARTIAL` | P7 Safari/macOS 平台 Passkey 已完成，其他环境 NOT_PERFORMED，详见 ASSERTION-INTEROP.md |
+| 真实设备与浏览器互操作 | `PARTIAL` | 已有 Safari/macOS preferred 和 Chrome/macOS required 真实 PASS，其他设备与 provider 按验收矩阵记录，详见 ASSERTION-INTEROP.md |
 
 `AssertionVerificationPolicy::new` 默认 UV 为 `Preferred`、跨域关闭、counter 为 `ReportOnly`。Origin 列表必须非空并由可信调用方显式配置。允许列表使用完整字符串匹配，配置中写入的 scheme、大小写、端口、Unicode 和原生客户端 origin 字符串均保留。配置合法性检查只保证非空、有效 UTF-16 与字节预算，授权哪些 origin 由 RP 决定。
 
@@ -172,7 +172,7 @@ Counter 的 `NonIncreasing` 代表潜在风险，默认继续返回成功和风�
 | 证书链、attestation 逐格式签名与信任验证 | `NOT_IMPLEMENTED` |
 | 文件分析 CLI、报告导出、退出码契约 | P7 已实现，文件整体读取先于 Core 限长，宿主需控制超大文件 |
 | Vue Dashboard 与 JS bridge | P7 已实现 Vue/Node/编译 JS Core，同源本地展示；浏览器直接 Wasm 集成尚未实现 |
-| 真实设备及浏览器互操作执行 | Safari/macOS 已取得真实 Core PASS，其他五组 NOT_PERFORMED，复现步骤与矩阵见 ASSERTION-INTEROP.md |
+| 真实设备及浏览器互操作执行 | Safari/macOS preferred 和 Chrome/macOS required 已取得真实 Core PASS，待完成环境及复现步骤见 ASSERTION-INTEROP.md |
 | 持续集成测试流水线 | 已配置四目标检查、测试、构建、格式和接口验证，实际远程状态见对应 PR |
 | 模糊测试、性能基准 | 待建立 |
 
@@ -190,6 +190,8 @@ Counter 的 `NonIncreasing` 代表潜在风险，默认继续返回成功和风�
 
 当前完成UV策略和实际TLS的自动化测试、事务元数据、离线HTTPS预检、版本化脱敏报告及历史来源校验。合成签名与TLS成功属于自动化证据。P7 Safari/macOS preferred的真实PASS记录保留原样。
 
-P7.1的Safari/macOS UV Required、iPhone注册与Assertion、跨设备HTTPS和Chrome/Google Password Manager仍需维护者实际执行。iPhone/HTTPS当前受专用域名、证书、访问控制和批准后部署条件阻塞。其他设备继续NOT_PERFORMED。工程准备完成时总体结论为PASS_WITH_WARNINGS，P0设备标准完成后再更新最终验收。
+2026-11-12 新增三份本地 required 报告，维护者已确认实际浏览器为 Chrome。登记与两次 Assertion 均为 PASS，实际 UP/UV/BE/BS=true，两次 Assertion 的 DER 验签成功。报告中的 provider 标签为 1Password，providerSource 保持 UNKNOWN。登记报告的 signature、counter 和 attestation_trust 均为 NOT_PERFORMED。数据库版本依次为初始0、0→1、1→2，签名计数器均为0且 Assertion 状态为 NOT_SUPPORTED。脱敏报告省略 credential ID，同一凭证的关联需维护者流程记录确认。[实际设备报告与记录](ASSERTION-INTEROP.md)
+
+P7.1的Safari/macOS UV Required及Safari重复认证、iPhone注册与Assertion、跨设备HTTPS和Chrome/Google Password Manager仍需维护者实际执行。iPhone/HTTPS当前受专用域名、证书、访问控制和批准后部署条件阻塞。Windows Hello、USB/NFC FIDO2继续NOT_PERFORMED。工程准备完成时总体结论为PASS_WITH_WARNINGS，P0设备标准完成后再更新最终验收。
 
 HTTPS模板尚未运行外部connector，cloudflared本地不可用，尚未执行其实际ingress验证。配置模板和离线预检不能证明公网Access策略、JWT验证、边缘信任链或iPhone行为。实际地址在部署验证后填写。域名、Tunnel、DNS、防火墙、端口、根证书信任和生产域名使用受任务书维护者授权边界约束。[HTTPS说明](INTEROP-HTTPS.md) · [验收矩阵](ASSERTION-INTEROP.md)

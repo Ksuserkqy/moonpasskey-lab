@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "application": "MoonPasskey Lab",
+  "developmentOnly": true,
+  "source": "registration",
+  "capturedAt": "2026-11-12T12:32:12.347Z",
+  "device": {
+    "device": "MacBookAir",
+    "operatingSystem": "MacOS 27.2",
+    "browser": "Google Chrome 157.0.8103.39",
+    "provider": "1Password",
+    "providerSource": "UNKNOWN"
+  },
+  "configuration": {
+    "rpId": "localhost",
+    "origin": "http://localhost:8789",
+    "userVerification": "required",
+    "counterPolicy": "report-only"
+  },
+  "outcome": "PASS",
+  "status": "PASS",
+  "databaseTransaction": {
+    "status": "COMMITTED",
+    "previousVersion": null,
+    "version": 0
+  },
+  "algorithm": "ES256",
+  "checks": {
+    "json": "PASS",
+    "authenticator_data": "PASS",
+    "public_key": "PASS",
+    "identity": "PASS",
+    "challenge": "PASS",
+    "origin": "PASS",
+    "cross_origin": "PASS",
+    "rp_id_hash": "PASS",
+    "user_presence": "PASS",
+    "user_verification": "PASS",
+    "backup": "PASS",
+    "signature": "NOT_PERFORMED",
+    "counter": "NOT_PERFORMED",
+    "attestation_trust": "NOT_PERFORMED"
+  },
+  "clientData": {
+    "type": "webauthn.create",
+    "challenge": {
+      "redacted": true,
+      "encodedLength": 43
+    },
+    "origin": "http://localhost:8789",
+    "crossOrigin": false,
+    "topOrigin": null
+  },
+  "authenticatorData": {
+    "length": 162,
+    "flags": {
+      "up": true,
+      "uv": true,
+      "be": true,
+      "bs": true,
+      "at": true,
+      "ed": false,
+      "rfu": 0
+    },
+    "signCount": 0
+  }
+}

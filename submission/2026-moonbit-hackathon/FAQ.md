@@ -46,6 +46,6 @@ AI 辅助 API 调查、实现、测试、静态审阅与文档。维护者定义
 
 ## 12. 当前最优先的后续工作是什么？
 
-完成 Safari UV required、iOS 与 Chrome 的实际设备验收，以及受保护 HTTPS 的部署和访问控制验证；再推进独立审查。其他算法、attestation 信任、模糊测试和性能基准属于后续工作，本次功能冻结不将其计为已交付能力。
+Chrome/macOS UV Required 已有注册及两次 Assertion PASS，Provider 标签为 1Password、来源保持 UNKNOWN。下一步完成 Safari UV required、Safari 重复认证、iOS、Google Password Manager 与受保护 HTTPS 验收，并推进独立审查。其他算法、attestation 信任、模糊测试和性能基准仍属于后续工作。[设备记录](../../docs/ASSERTION-INTEROP.md)
 
 [申报稿](APPLICATION.md) · [架构](ARCHITECTURE.md) · [原始开发证据](../../docs/DEVELOPMENT.md) · [真实设备矩阵](../../docs/ASSERTION-INTEROP.md) · [部署验证](../../deploy/ubuntu-nginx/VALIDATION.md)

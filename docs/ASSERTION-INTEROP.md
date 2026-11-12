@@ -1,6 +1,6 @@
 # 浏览器与真实设备互操作记录
 
-## Phase 7 当前执行状态
+## Phase 7 历史执行状态
 
 2026-11-12 已完成 Safari/macOS 真实平台 Passkey 的测试注册与 Assertion。维护者完成系统注册和认证，页面显示两条测试注册 PASS 与一条 Assertion PASS。最终 Assertion 的12项检查通过，ES256/P-256 公钥有效、DER 签名 Valid，Core 最终 PASS。公开记录来自 Dashboard 的实际脱敏导出。
 
@@ -68,7 +68,7 @@ Host HTTP 集成测试通过真实编译 Core 完成服务器挑战、none 测�
 | A2 | P0 | Safari/iOS，真实注册和 Assertion | BLOCKED | 专用测试域名、可信 HTTPS、访问控制和实际 iPhone |
 | A3 | P0 | Safari/iOS，HTTPS 跨设备访问 | BLOCKED | 边缘与后端 TLS、Access/JWT、允许和拒绝访问的实际结果 |
 | A4 | P1 | Chrome/macOS，Google Password Manager | NOT_PERFORMED | 实际 provider 选择、注册、Assertion与导出 |
-| A5 | P1 | Chrome/macOS，UV Required | NOT_PERFORMED | required配置与实际 UV=true 的签名响应 |
+| A5 | P1 | Chrome/macOS，UV Required | PASS | 本地注册与两次 Assertion，实际 UV=true、DER有效、COMMITTED；[归档记录](#chromemacos-uv-required-最终归档) |
 | A6 | P1 | Safari/macOS或iOS，重复认证与状态更新 | NOT_PERFORMED | 同一凭证至少两次新挑战、COMMITTED版本递增、独立导出 |
 | A7 | P2 | Chrome/Windows Hello | NOT_PERFORMED | 真实设备及环境元数据 |
 | A8 | P2 | USB FIDO2 | NOT_PERFORMED | 真实密钥型号、浏览器、注册与Assertion |
@@ -104,3 +104,43 @@ REFERENCE_RP_PORT=8789 REFERENCE_RP_UV=required node reference-rp/start.mjs
 ```
 
 维护者在 Safari 打开 http://localhost:8789，确认 required、正确RP/origin、注册与Assertion实际PASS。填写真实设备与provider来源，分别导出注册、第一次Assertion和重复Assertion的脱敏报告。跨设备和Chrome扩展验收使用审核后的固定HTTPS地址。回传实际导出的报告、测试项编号、HTTPS访问与未授权拒绝结果、实际软件版本，以及失败或阻塞原因。
+
+## Chrome/macOS UV Required 最终归档
+
+2026-11-12，维护者提供三份 Dashboard 脱敏导出，并在核对浏览器元数据后明确确认实际使用 Chrome。本批记录归入 A5。报告原始字节保留，环境字符串沿用导出值，Provider 来源保持 `UNKNOWN`。
+
+| 环境与策略 | 导出值 |
+| --- | --- |
+| 设备 / OS / 浏览器 | MacBookAir / MacOS 27.2 / Google Chrome 157.0.8103.39 |
+| Provider 标签 / 来源 | 1Password / UNKNOWN |
+| RP ID / Origin | localhost / http://localhost:8789 |
+| 请求 UV / Counter | required / report-only |
+| 实际 UP / UV / BE / BS | 三份均为 true / true / true / true |
+
+| 报告 | capturedAt（UTC） | Core | 数据库提交 | 签名 / 计数器 |
+| --- | --- | --- | --- | --- |
+| [测试注册](interop/local-uv-required-registration-2026-11-12.redacted.json) | 2026-11-12T12:32:12.347Z | PASS，11项检查PASS | COMMITTED，null→0 | signature、counter、attestation_trust 均 NOT_PERFORMED |
+| [第一次 Assertion](interop/local-uv-required-assertion-1-2026-11-12.redacted.json) | 2026-11-12T12:32:25.476Z | PASS，12项检查PASS | COMMITTED，0→1 | DER、signatureValid=true，signCount=0，NOT_SUPPORTED |
+| [第二次 Assertion](interop/local-uv-required-assertion-2-2026-11-12.redacted.json) | 2026-11-12T12:32:29.280Z | PASS，12项检查PASS | COMMITTED，1→2 | DER、signatureValid=true，signCount=0，NOT_SUPPORTED |
+
+注册的 AT=true、AuthenticatorData 长度162字节；两次 Assertion 的 AT=false、长度37字节。三份均 ED=false、RFU=0、crossOrigin=false、topOrigin=null，challenge 仅保留43字符长度。
+
+数据库版本按三份导出依次初始化和递增。signCount 始终为0，未建立递增签名计数器证据。脱敏记录没有 credential ID 或完整 challenge，不能单独证明三份记录属于同一凭证或采用三个不同挑战。报告中的身份、challenge 检查结果按 Core 当时返回值记录。
+
+本批提供 Chrome Required 记录，A1 Safari Required、A4 Google Password Manager、A6 Safari 重复认证及 iOS / 公网 HTTPS 项继续按上表待完成状态记录。`1Password` 为报告中的标签，`UNKNOWN` 不升级为独立 Provider 验证。
+
+### 原始文件与摘要
+
+下表对应原导出文件名和归档文件 SHA-256。仅变更归档文件名，文件内容逐字节一致。
+
+| 原导出文件名 | 归档文件 | SHA-256 |
+| --- | --- | --- |
+| moonpasskey-report-2026-11-12T12-32-12.347Z.redacted.json | local-uv-required-registration-2026-11-12.redacted.json | fde491fc34ec512fc1c82e3f9958376906985ab039f6cf498866dc15cb0c0dcf |
+| moonpasskey-report-2026-11-12T12-32-25.476Z.redacted.json | local-uv-required-assertion-1-2026-11-12.redacted.json | 14b8f254c9064e063d5c8c375c53a75bb093b768a0281e95034984a5591d60c1 |
+| moonpasskey-report-2026-11-12T12-32-29.280Z.redacted.json | local-uv-required-assertion-2-2026-11-12.redacted.json | 0394bc95e7540038256bb7fd552d3201727e52c1194617a62e8779289070171c |
+
+```sh
+node --experimental-strip-types scripts/check-interop-reports.mjs
+```
+
+现有检查器默认扫描本目录，四份报告均通过，包含原 Safari preferred 报告及其摘要校验。v1 报告按既有 schema 和逐层字段允许列表校验，无需新增 sidecar。此次仅验证导出结构、脱敏和字段一致性，原始认证字节及签名不在报告中，验签结果为当时保存的 Core 结果。
