@@ -501,3 +501,69 @@ Dashboard 的 npm ci、vue-tsc、5项测试和 Vite build 均通过。当前 mac
 ### 远程 CI 与设备证据
 
 CI 新增 Reference RP and concurrency 与 Vue dashboard 两个独立 job，并在四目标矩阵执行 CLI 入口测试。提交8f512cc3bb6540d5e1153b387fb4a9420b95b4f9 的六个 CI job 全部成功。逐项日志确认四目标各491项、CLI各7项、RP24项和Dashboard5项通过，固定 moonc/core0.10.20+65efd5b93。MoonBit矩阵使用Node24.22.2，RP/前端使用固定Node24.18.0。随后维护者完成 Safari/macOS 平台 Passkey 注册与认证，13:02:59.977 CST 的实际 Dashboard 导出显示12项PASS、DER有效、UV/BE/BS=true、signCount0及Core最终PASS。provider按维护者选择记录，完整元数据与脱敏JSON见设备矩阵。[首轮 P7 CI](https://github.com/Ksuserkqy/moonpasskey-lab/actions/runs/43158292996)。文档收尾提交137e098的六项CI同样成功。[第二轮 P7 CI](https://github.com/Ksuserkqy/moonpasskey-lab/actions/runs/43158654028)[设备矩阵](ASSERTION-INTEROP.md)
+
+## Phase 7.1 互操作工程准备
+
+### 前置审计与操作边界
+
+PR #7实际状态为MERGED，merge commit为1fdf8114d43c138aeed4166a6dd3b4e92278c5e1。fetch后确认最新origin/main包含该提交，初始工作区干净，从该origin/main创建feat/p7-1-interoperability-closure。本地私有维护文件存在、由本地exclude忽略且未跟踪，未修改其内容。其他用户私有文件不在本次读取范围内。
+
+首先重新执行527项基线，Core491和CLI7在native/js/wasm/wasm-gc分别通过，RP24和Dashboard5通过。P7原始Safari报告SHA256为0f27841c5fcf6d84927a7b53b66a9f6b24aa2fa0feb84f7caa711cd13311c9af，修改后继续逐字节核对。既有ASSERTION-INTEROP内容作为完整前缀保留，P7.1矩阵追加在后。
+
+用户任务书B2限制基础设施操作，§13要求工程准备后保留人工设备步骤。本轮只提供设计、模板、代码和自动化验证。实际专用域名、证书、Access应用及受保护Tunnel尚待维护者批准和准备，iPhone地址为占位模板。工程阶段总体状态PASS_WITH_WARNINGS，P0真实设备验收待完成。
+
+### 实现与独立审阅
+
+新增11项RP测试，通过真实编译Core检查Required/Preferred/Discouraged选项及实际签名UV标志，覆盖Required的UV=false拒绝和UV=true成功，以及HTTPS精确Host/Origin、CSRF、错误RP、重放、TLS配置、事务回滚与重复认证版本。RP构造入口现在拒绝不完整cert/key；成功响应在事务提交后增加非身份databaseTransaction元数据。
+
+新增22项离线preflight测试，覆盖固定HTTPS配置、域名/RP一致性、SAN、时效、key配对、TLS完整输入和错误脱敏。独立审阅发现X509Certificate只读取首个证书且可接受DER，已增加实际createSecureContext检查和DER/坏中间证书回归。CA逐个PEM块解析。输出显式区分离线配置PASS与外部信任、代理头、Access/JWT及手机访问NOT_PERFORMED。非默认边缘端口的匹配配置仍需维护者验证。
+
+新增21项Dashboard/报告测试，共26项。版本化schema逐层关闭未知字段，providerSource显式分类，配置与事务按响应保存快照。原始报告保持原样，sidecar固定SHA和来源，旧事务字段UNKNOWN。独立审阅修复导入报告借用当前RP配置、合法Core错误context被过短上限拒绝、sidecar输入预算，以及严格UTF-8/重复解码键等边界。Core解析型导入的type/origin/topOrigin保留有界原文，协议语义继续由Core判断。
+
+报告CLI使用Node原生JSON语法解析及小型重复键检测，防止被覆盖的对象隐藏原始敏感字段。报告和sidecar均限制2MiB，错误信息避免回显原始数据。实际设备元数据和provider选择仍由维护者核对。自动化schema校验只提供格式与脱敏证据。
+
+### 固定工具链与实际本地回归
+
+MoonBit使用隔离0.10.20+65efd5b93工具链，MoonCrypt0.4.16。Node使用已校验的官方24.18.0归档，测试证书由本机OpenSSL4.1.0临时生成。HTTPS测试客户端为单次请求显式信任合成证书，实际TLS名称/证书验证保持启用，临时私钥按测试生命周期清除。
+
+| 目标 | Core通过/失败 | CLI通过/失败 | info/check/build/run |
+| --- | --- | --- | --- |
+| native | 491/0 | 7/0 | PASS |
+| js | 491/0 | 7/0 | PASS |
+| wasm | 491/0 | 7/0 | PASS |
+| wasm-gc | 491/0 | 7/0 | PASS |
+
+| Node模块 | 原有 | 新增 | 通过/失败 |
+| --- | --- | --- | --- |
+| Reference RP及preflight | 24 | 33 | 57/0 |
+| Dashboard及报告校验 | 5 | 21 | 26/0 |
+
+独立用例共581项，较527基线增加54项。Core与CLI数量保持491和7，CLI在四目标各执行，独立总数只计一次。moon info、moon fmt、moon fmt --check、四目标deny-warn检查/测试/构建/运行及git diff --check均通过。报告CLI验证历史报告及provenance通过，Dashboard类型检查和生产构建通过。
+
+```sh
+moon info
+moon fmt
+moon fmt --check
+for target in native js wasm wasm-gc; do
+  moon info --target "$target"
+  moon check --target "$target" --deny-warn
+  moon test --target "$target" --deny-warn
+  moon build --target "$target" --deny-warn
+  moon run cmd/main --target "$target" --deny-warn
+  CLI_TARGET="$target" node --test cmd/main/cli.test.mjs
+done
+npm --prefix reference-rp test
+npm --prefix dashboard run check
+npm --prefix dashboard test
+npm --prefix dashboard run build
+node --experimental-strip-types scripts/check-interop-reports.mjs
+git diff --check
+```
+
+### CI与人工交接
+
+六个既有CI job继续覆盖四目标、RP和Dashboard，Node统一固定24.18.0。RP执行OpenSSL版本与完整测试，Dashboard额外执行历史报告校验。远程最终结果由本阶段Draft PR当前head的实际检查记录。
+
+新真实UV Required、iPhone和Chrome流程尚未执行。历史P7的Safari/macOS preferred真实PASS继续保留，provider来源为MAINTAINER_SELECTED，旧导出未记录显式事务版本。P7.1 A1为NOT_PERFORMED，A2/A3因已验证HTTPS入口尚未建立而BLOCKED，A4–A9为NOT_PERFORMED。HTTPS模板经sh语法、RubyYAML解析和配置不变量检查，cloudflared本机未安装，尚未运行其实际ingress验证。
+
+维护者完成设备步骤并回传实际Dashboard脱敏导出后，再核对数据库提交、原始flags、DER与Core结果，追加新记录和更新Draft PR。[人工矩阵与命令](ASSERTION-INTEROP.md#phase-71-设备验收矩阵) · [HTTPS配置与清理](INTEROP-HTTPS.md)

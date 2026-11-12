@@ -62,6 +62,13 @@
 - 新增 Vue Dashboard，调用浏览器原生 create/get，保留原始 clientDataJSON，显示实际 Core 结果并提供脱敏导出。
 - 增加独立前端与参考 RP CI，四目标增加 CLI 入口测试。取得 Safari/macOS 真实平台 Passkey 的 Core PASS 与脱敏导出，其他环境按专项矩阵标记。
 
+### Phase 7.1 互操作验收准备
+
+- 增加Required/Preferred/Discouraged的真实Core自动化验证、HTTPS精确Host/Origin、证书校验、重放与事务版本证据。
+- 增加离线跨设备配置预检、受保护Tunnel设计和占位模板。
+- 增加版本化脱敏报告、逐层白名单、provider来源、事务快照与历史报告摘要校验。
+- 保留P7原始设备报告，追加P7.1人工验收矩阵与HTTPS/iPhone/Chrome交接步骤。实际执行状态见设备矩阵。
+
 ### 文档与仓库流程
 
 - 记录架构、威胁模型、标准映射、竞品分析、开发过程和当前限制。

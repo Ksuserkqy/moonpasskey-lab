@@ -98,6 +98,7 @@ export class CeremonyCoordinator {
     const committed = this.store.commitRegistration(session, binding,
       { ...record, backupState }, report);
     return { status: 'PASS', report, reportId: committed.reportId,
+      databaseTransaction: { status: 'COMMITTED', previousVersion: null, version: 0 },
       credential: publicCredential(committed.credential) };
   }
 
@@ -126,6 +127,7 @@ export class CeremonyCoordinator {
       const committed = this.store.commitAssertion(session, binding, snapshot, update, report);
       if (!committed.conflict) return {
         status: 'PASS', report, reportId: committed.reportId, attempts: attempt + 1,
+        databaseTransaction: { status: 'COMMITTED', previousVersion: snapshot.version, version: snapshot.version + 1 },
         credential: publicCredential(this.store.getCredential(session.userId, body.rawId)),
       };
       // The next iteration loads the latest version and asks Core to evaluate

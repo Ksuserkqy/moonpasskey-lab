@@ -78,3 +78,13 @@ MoonCrypt 0.4.16 的已知坐标范围缺口由 P4 强制前置检查覆盖。�
 默认数据库是内存库。显式 REFERENCE_RP_DB 启用文件持久化，保存公开 COSE key、credential ID、账户句柄、挑战摘要、状态和脱敏报告。原始认证响应不会写入数据库。文件权限0600，新目录0700，文件持久化的备份和删除由维护者管理。系统 Passkey 本身由系统 provider 保存，维护者在实验结束后自行管理测试凭证。
 
 Node 24.18 的 node:sqlite 处于 Release candidate 稳定性等级。MoonCrypt 0.4.16 缺少已核验的独立安全审计，原有范围检查防护持续存在。P7 自动化测试和设备证据不能建立整体 WebAuthn/FIPS 合规结论。[Node SQLite](https://nodejs.org/download/release/v24.18.0/docs/api/sqlite.html) · [当前限制](LIMITATIONS.md) · [互操作记录](ASSERTION-INTEROP.md)
+
+## Phase 7.1 HTTPS 与报告边界
+
+跨设备设计使用固定专用测试hostname，浏览器验证边缘HTTPS证书，connector验证到loopback后端的独立TLS证书。Access应用覆盖整个hostname和所有路径，显式身份Allow策略配合connector的per-ingress JWT校验。原有Host、Origin、CSRF与会话校验继续执行，forwarded headers不参与授权配置。云端代理会处理测试认证流量，维护者须批准测试服务商与基础设施部署。
+
+离线preflight确认配置、完整TLS输入、证书名称/时效和key配对，并将域名控制权、链信任、Access/JWT、代理头一致性和iPhone可达性标为NOT_PERFORMED。离线PASS只覆盖所列配置检查，网络侧与真实设备证据另行验收。合成TLS用例生成临时证书并通过请求级CA验证，系统trust store保持在维护者控制范围。
+
+报告校验使用各层字段白名单，限制metadata、类型、状态、时间和provider来源。新报告只保留脱敏challenge长度、flags、计数、DER结果、Core状态与非身份事务版本。原始响应、credential ID、userHandle、公钥、签名、私钥、cookie、CSRF与TLS密钥没有导出字段。维护者填写的设备和provider文本仍需在分享前核对，结构校验无法证明实际硬件执行或provider身份。
+
+历史报告保持原始字节，sidecar固定摘要及来源分类。数据库提交证据由成功事务之后的显式响应提供。旧导出缺少该字段时标为UNKNOWN，保留既有Core成功结果。导入分析使用自己的配置上下文，不能借用当前RP策略或生成数据库提交证据。[HTTPS方案](INTEROP-HTTPS.md) · [矩阵与报告](ASSERTION-INTEROP.md)

@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref } from "vue";
 import {
   MAX_IMPORT_BYTES,
+  captureLocalReport,
   creationOptions,
   requestOptions,
   safeReportExport,
@@ -33,6 +34,7 @@ const device = reactive<DeviceMetadata>({
   operatingSystem: "",
   browser: "",
   provider: "",
+  providerSource: "UNKNOWN",
 });
 const browserOrigin = window.location.origin;
 
@@ -157,19 +159,7 @@ function remember(
   envelope: ReportEnvelope | CoreReport,
   source: LocalReport["source"],
 ) {
-  const value =
-    "report" in envelope && envelope.report
-      ? envelope.report
-      : (envelope as CoreReport);
-  const entry: LocalReport = {
-    id:
-      "reportId" in envelope && envelope.reportId
-        ? envelope.reportId
-        : crypto.randomUUID(),
-    source,
-    createdAt: new Date().toISOString(),
-    report: value,
-  };
+  const entry = captureLocalReport(envelope, source, session.value?.config);
   reports.value = [entry, ...reports.value].slice(0, 30);
   selectedReport.value = entry;
 }
@@ -294,20 +284,22 @@ async function analyzeImport() {
 
 function downloadReport() {
   if (!selectedReport.value) return;
-  const exported = safeReportExport(
-    selectedReport.value,
-    device,
-    session.value?.config,
-  );
-  const blob = new Blob([JSON.stringify(exported, null, 2)], {
-    type: "application/json",
-  });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `moonpasskey-report-${selectedReport.value.createdAt.replaceAll(":", "-")}.json`;
-  link.click();
-  URL.revokeObjectURL(url);
+  notice.value = "";
+  try {
+    const exported = safeReportExport(selectedReport.value, device);
+    const blob = new Blob([JSON.stringify(exported, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `moonpasskey-report-${selectedReport.value.createdAt.replaceAll(":", "-")}.redacted.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    notice.value = describeError(error);
+    tab.value = "reports";
+  }
 }
 
 function clearView() {
@@ -634,8 +626,13 @@ onMounted(connect);
             ><input
               id="device-provider"
               v-model="device.provider"
-              placeholder="e.g. iCloud Keychain"
-            />
+              placeholder="Enter the selected provider, or Unknown"
+            /><label for="device-provider-source">Provider attribution source</label
+            ><select id="device-provider-source" v-model="device.providerSource">
+              <option value="UNKNOWN">Unknown</option>
+              <option value="MAINTAINER_SELECTED">Selected by maintainer</option>
+              <option value="INDEPENDENTLY_VERIFIED">Independently verified</option>
+            </select>
           </div>
         </section>
 

@@ -34,7 +34,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
-          node-version: '24'
+          node-version: '24.18.0'
 
       - name: Install pinned MoonBit toolchain and core
         run: |
@@ -107,7 +107,9 @@ jobs:
           moon build analysis --target js --deny-warn
       - name: Test lifecycle, real database races and Core HTTP integration
         working-directory: reference-rp
-        run: npm test
+        run: |
+          openssl version
+          npm test
 
   dashboard:
     name: Vue dashboard
@@ -130,4 +132,6 @@ jobs:
       - run: npm ci
       - run: npm run check
       - run: npm test
+      - name: Validate preserved real-device reports and provenance
+        run: node --experimental-strip-types ../scripts/check-interop-reports.mjs
       - run: npm run build

@@ -28,6 +28,8 @@ test('actual Core and two independent workers reject a replay after competing si
   const results = await race(t, value, [signed, signed], { corePath });
   assert.equal(results.filter(result => result.result?.status === 'PASS').length, 1);
   assert.equal(results.filter(result => result.error === 'ChallengeConsumed').length, 1);
+  assert.deepEqual(results.find(result => result.result?.status === 'PASS').result.databaseTransaction,
+    { status: 'COMMITTED', previousVersion: 0, version: 1 });
   assert.equal(value.store.getCredential(value.session.userId, value.credentialId).version, 1);
 });
 
@@ -41,6 +43,8 @@ test('actual Core re-verifies signed lower counter after CAS and reports risk wi
   assert.equal(results[1].result.report.counter.status, 'WARNING');
   assert.equal(results[1].result.report.counter.stored, 9);
   assert.equal(results[1].result.report.checks.signature, 'PASS');
+  assert.deepEqual(results[0].result.databaseTransaction, { status: 'COMMITTED', previousVersion: 0, version: 1 });
+  assert.deepEqual(results[1].result.databaseTransaction, { status: 'COMMITTED', previousVersion: 1, version: 2 });
   const record = value.store.getCredential(value.session.userId, value.credentialId);
   assert.equal(record.signCount, 9);
   assert.equal(record.backupState, true);
@@ -55,6 +59,7 @@ test('actual Core Reject policy re-evaluates the latest signed counter after a t
   assert.deepEqual(results[1].observed, [1, 9]);
   assert.equal(results[1].result.status, 'FAIL');
   assert.equal(results[1].result.report.error.kind, 'CounterNonIncreasing');
+  assert.equal(results[1].result.databaseTransaction, undefined);
   assert.equal(value.store.getCredential(value.session.userId, value.credentialId).signCount, 9);
   assert.equal(value.store.challenge(value.session, { ...challenges[1], ...value.config, purpose: 'assertion' }).consumed_at, null);
 });

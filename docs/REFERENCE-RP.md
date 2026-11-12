@@ -64,3 +64,19 @@ node --test cmd/main/cli.test.mjs
 Host HTTP 集成测试使用临时生成的合成 P-256 key 和签名，经真实编译 Core 执行注册、验签与负例。私钥只存在于测试进程内存。竞争测试使用真实 SQLite 多连接。实际 Safari/设备流程的执行结果单独记录于互操作文档。
 
 Node 24.18 的内置 node:sqlite 标记为 Stability 1.2 Release candidate。参考服务为单进程本地工具，未建立生产级账户、分布式协调、全面流量限制、长期清理、审计或运维体系。MoonCrypt 的独立审计限制沿用 P5/P6 记录。[Node.js 24.18 SQLite](https://nodejs.org/download/release/v24.18.0/docs/api/sqlite.html) · [当前限制](LIMITATIONS.md) · [挑战事务](CHALLENGE-LIFECYCLE.md)
+
+## Phase 7.1 验收接口
+
+注册和 Assertion 成功响应增加 databaseTransaction 对象，status=COMMITTED，包含 previousVersion 和 version。注册 version为0，previousVersion为null；Assertion 使用成功CAS的旧版本与旧版本加一。该对象在事务成功后返回，失败或回滚响应没有 COMMITTED。报告省略credential ID和report ID，Dashboard只保留非身份事务元数据。
+
+HTTPS配置现在启动前拒绝空TLS对象及缺少cert/key的情况。实际HTTPS测试使用运行时生成的合成证书，客户端只为该次请求显式提供CA并验证TLS名称及证书。测试不改变系统证书信任。Required、Preferred、Discouraged的选项和实际UV响应均通过真实编译Core验证。
+
+```sh
+REFERENCE_RP_PORT=8789 REFERENCE_RP_UV=required node reference-rp/start.mjs
+node reference-rp/interop-preflight.mjs
+node --experimental-strip-types scripts/check-interop-reports.mjs
+```
+
+preflight是离线配置与证书检查，只读取维护者通过环境变量明确提供的TLS路径，检查完整NodeTLS输入、SAN、时效和密钥配对。REFERENCE_RP_TLS_CA是可选的origin CA PEM文件，仅供预检和连接器显式信任配置使用，start.mjs不借此信任转发头。链信任、代理Host/Origin、外部Access/JWT和手机可达性保留人工验收状态。
+
+P7.1当前工程准备可运行，真实required、iPhone和跨设备HTTPS的执行状态见设备矩阵。受保护HTTPS方案保持后端loopback、精确Host/Origin/session/CSRF。基础设施激活由维护者批准并执行。[跨设备HTTPS](INTEROP-HTTPS.md) · [设备矩阵](ASSERTION-INTEROP.md)

@@ -49,7 +49,7 @@ export function createReferenceRp({ store, core, rpId = 'localhost', origin = 'h
   if (!['http:', 'https:'].includes(configured.protocol) || configured.origin !== origin
       || configured.username || configured.password) throw new Error('Origin must be an exact HTTP(S) origin.');
   if (host !== '127.0.0.1' && host !== '::1') throw new Error('Reference RP must bind to a loopback address. Use a protected local HTTPS tunnel for another device.');
-  if (configured.protocol === 'https:' && !tls) throw new Error('HTTPS requires a certificate and key.');
+  if (configured.protocol === 'https:' && (!tls?.cert || !tls?.key)) throw new Error('HTTPS requires a certificate and key.');
   if (tls && configured.protocol !== 'https:') throw new Error('A TLS server requires an HTTPS origin.');
   if (configured.protocol === 'http:' && !['localhost', '127.0.0.1', '[::1]'].includes(configured.hostname)) {
     throw new Error('HTTP is supported only for a loopback origin.');
