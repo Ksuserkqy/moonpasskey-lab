@@ -375,3 +375,70 @@ PR #5 的实现提交 `4bd44211cc6a64b0907531d50a8791a4b458d558` 首轮 CI 在�
 修正提交 `811007bb3d9d15ad30a588fdaa9326211549d6db` 的四目标 CI 全部成功。逐个检查 job 结果和日志，确认 Ubuntu24.04、moon/moonrun `0.1.20261104`、moonc/core `0.10.20+65efd5b93`、Node `v24.22.2`。wasm、wasm-gc、js、native 每个目标均为329项通过、0失败，格式、registry 初始化、接口比对、check/test/build/run 全部成功。[四目标 Actions 43122438670](https://github.com/Ksuserkqy/moonpasskey-lab/actions/runs/43122438670)
 
 后续文档收尾提交的当前 CI 状态见 PR #5。P5 功能已完成上述验收，PR 保持 OPEN，维护者人工审查待进行。[Phase 5 PR](https://github.com/Ksuserkqy/moonpasskey-lab/pull/5)
+
+## Phase 6 ES256 Assertion 与 RP 策略（2026-11-12）
+
+### 前置状态与环境
+
+开始前核验 PR #5 已合并，合并提交为 `d4b1887c13429351404a0ec7038b7f1a3c3821e5`，fetch 后确认该提交在最新 `origin/main`。工作区干净，从该远程基线建立 `feat/p6-webauthn-assertion-verification`。P5 的329项测试作为完整保留基线。
+
+默认安装的 moon/moonrun 为 `0.1.20261111`、moonc/core 为 `0.10.21+f125caab5`。本阶段通过命令级 MOON_HOME/PATH 继续使用 P5 已隔离安装的固定官方工具链，实际 moon/moonrun 为 `0.1.20261104`（940aa18）、moonc/core 为 `0.10.20+65efd5b93`。主机为 Darwin arm64，Node.js `v24.18.0`。MoonCrypt 继续为0.4.16，解析的间接依赖版本沿用 P5 记录，生产路径使用纯 MoonBit。
+
+### 实现与接口
+
+新增 `assertion_types.mbt`、`assertion_policy.mbt`、`assertion.mbt`。统一入口为 `verify_webauthn_es256_assertion(request, credential, policy, limits?)`，返回 `Result[AssertionVerificationResult, AssertionVerificationError]`。
+
+请求保存原始 clientDataJSON、authenticatorData、DER signature、credential ID、可选 userHandle、本次可信预期 challenge 和账户识别模式。可信记录保存与所选账户关联的 credential ID、账户句柄、P5 已验证公钥、历史计数和可选 BE。策略保存精确允许列表、RP ID、UV 要求、跨域开关和 counter 风险选择。默认 Preferred、禁用跨域、ReportOnly。
+
+执行顺序为配置/预算检查、credential ID/账户句柄绑定、客户端 JSON 解析、type/challenge/Origin/跨域策略、authData 解析及 RP ID hash/flags 检查、原始 DER 验签、counter 风险评估，最后创建更新建议。配置错误没有输入 offset，JSON 语义错误定位到 value token 的起点，authData 错误定位到字段范围，原始 ParseError 与 CryptoError 保留为带类别的嵌套结果。合法 DER 的无效签名单独报告 InvalidSignature。
+
+Challenge 通过现有 Base64URL 严格校验，拒绝空值、padding 和非规范表示，复用 MoonCrypt `spec.eq` 比较规范表示及解码后的字节。配置字符串在 UTF-8 编码前检查 UTF-16 有效性和 UTF-8 字节预算，避免不同目标对未配对 surrogate 的行为差异。Origin 使用精确字符串允许列表。crossOrigin=true 需要明确授权，topOrigin 存在时必须与独立允许列表匹配且 crossOrigin 显式为 true；获得授权的跨域响应可缺省 topOrigin。
+
+RP ID 只进行当前 ASCII 域名标签语法检查，对原文 UTF-8 计算 SHA-256 并安全比较。完整 valid-domain、IDNA、PSL、域名授权和浏览器 RP ID 适用性由可信配置层负责。P6 要求 UP，只有 Required 强制 UV，检查已知历史 BE 的一致性，复用 P3 的 BS⇒BE 检查，返回真实 flags 和当前 BS。严格拒绝 AT、非零 RFU。ED 输出在有界解析后按 RP 策略忽略语义并保留原始值。
+
+`CounterStatus` 覆盖0→0的 NotSupported、递增的 Advanced 和其他至少一值非零的 NonIncreasing。风险评估在签名成功之后执行，默认 ReportOnly 返回风险和历史最大计数的更新建议，Reject 显式拒绝异常。未知历史 BE 保留 None。成功结果同时包含收到的真实计数、上次计数与更新建议。
+
+Core 无数据库或挑战存储。调用方负责可信账户查询、Discoverable 查找、外层响应检查、挑战随机性/熵/有效期/一次性消费、事务或 revision/CAS 提交。并发请求可能乱序或具有相同计数快照，更新建议的历史字段不能替代数据库记录版本。uvInitialized 与附加认证因素授权、AppID 特殊哈希、注册信任和其他算法仍在当前支持范围之外。
+
+### 测试与来源
+
+新增114个测试块，全仓库443个，既有 P1–P5 的329项完整保留。
+
+| 新文件 | 测试块 | 覆盖 |
+| --- | ---: | --- |
+| assertion_policy_test.mbt | 38 | challenge、Origin、cross/top、RP 配置、credential/account 绑定、输入和配置预算、错误及来源位置 |
+| assertion_test.mbt | 72 | 计数器20种关系及默认策略、UP/UV、BE/BS、AT/RFU、ED、原始字节、签名与解析错误、更新边界 |
+| assertion_fixtures_test.mbt | 1 | 全部44组固定合成签名的密码学完整性 |
+| assertion_w3c_test.mbt | 3 | 官方 §16.2/§16.4/§16.5 原始字节及 DER 的统一验证、预期挑战变更失败 |
+
+44组签名在仓库外由 Node.js24.18.0/OpenSSL3.5.7 的一次性测试密钥生成，保存的内容仅为公钥、原始客户端/认证器字节和固定 DER 签名。全部签名由 OpenSSL 独立验证，格式化后的实际源码再次提取后44/44验证成功。规范化公开元组的 SHA-256 为 `714c8a45b93302dbe1a3d65b23c90308d4d82f7a774e2d010ad0ec1f120e46b4`。这些数据为项目合成数据，原有 W3C 向量和许可证继续单独保留。三个官方集成上下文中的可信账户与 RP 配置由项目测试提供。
+
+源码和标准经过 AI 审查，未发现当前支持范围内的阻塞性问题。维护者人工验收仍待 PR 审查。新的公开接口仅追加到 WebAuthn 的生成接口，P1–P5 的实现与原有测试文件没有改动。
+
+### 本地完整验收
+
+实际执行 `moon info`、`moon fmt`、`moon fmt --check`、`git diff --check`，并对四个目标执行以下命令。
+
+```sh
+moon check --target TARGET --deny-warn
+moon test --target TARGET --deny-warn
+moon build --target TARGET --deny-warn
+moon run cmd/main --target TARGET --deny-warn
+```
+
+| 目标 | 通过 | 失败 | check | build | run |
+| --- | ---: | ---: | --- | --- | --- |
+| native | 443 | 0 | PASS | PASS | Hello |
+| js | 443 | 0 | PASS | PASS | Hello |
+| wasm | 443 | 0 | PASS | PASS | Hello |
+| wasm-gc | 443 | 0 | PASS | PASS | Hello |
+
+首次完整矩阵与文档示例的临时编译检查重叠，测试计划中出现仍含占位符的 `interop_adapter_probe_test.mbt`，四目标均为444项、443通过、1项占位符编码错误。临时文件已移除，清理构建缓存后重新执行上述完整矩阵，得到表中的443/443。该临时示例没有纳入提交。文档 MoonBit adapter 的编译检查与 browser JavaScript 语法检查通过，实际设备测试仍为 NOT_PERFORMED。
+
+首个逻辑提交的暂存区另行导出验证，native 下371项通过，确认其不依赖第二个测试提交中的未暂存辅助函数。
+
+### 真实设备与远程 CI
+
+Safari/iCloud Keychain、Chrome/Google Password Manager、Chrome/Windows Hello、USB/NFC FIDO2 四组实际互操作均为 `NOT_PERFORMED`。未记录设备版本或真实认证材料。可复现捕获步骤、原始数据字段和 Core 验证 adapter 见 [互操作步骤](ASSERTION-INTEROP.md)。本轮完成的是自动化验证和设备验证方案，整体交付状态为 `PASS_WITH_WARNINGS`。
+
+最终提交的四目标 GitHub Actions 状态将在推送和 PR 创建后核验并补入。
