@@ -28,7 +28,7 @@ async function setup(t) {
         response.on('end', () => resolve({ status: response.statusCode, body: JSON.parse(Buffer.concat(chunks).toString()) }));
       });
       outgoing.on('error', reject);
-      outgoing.end(input === undefined ? undefined : JSON.stringify(input));
+      outgoing.end(Buffer.isBuffer(input) ? input : JSON.stringify(input));
     });
   }
   return { app, store, session, cookie, request };
@@ -113,6 +113,14 @@ test('analysis endpoint returns actual Core typed results without persisting imp
   assert.equal(result.body.status, 'FAIL');
   assert.equal(result.body.error.kind, 'MissingField');
   assert.equal(store.reports(session.user.id).length, 0);
+});
+
+test('HTTP rejects malformed UTF-8 transport before JSON parsing', async t => {
+  const { request } = await setup(t);
+  const raw = Buffer.concat([Buffer.from('{"purpose":"registration","'), Buffer.from([0xff]), Buffer.from('":0}')]);
+  const result = await request('/api/challenges', raw);
+  assert.equal(result.status, 400);
+  assert.equal(result.body.error.kind, 'InvalidBodyUtf8');
 });
 
 test('reference service rejects public bind addresses and insecure remote origins', () => {

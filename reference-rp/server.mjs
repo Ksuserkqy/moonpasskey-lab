@@ -25,8 +25,12 @@ async function body(request) {
     if (size > MAX_BODY_BYTES) throw new RpError('BodyTooLarge', 413);
     chunks.push(chunk);
   }
+  let text;
   try {
-    const value = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    text = new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks));
+  } catch { throw new RpError('InvalidBodyUtf8'); }
+  try {
+    const value = JSON.parse(text);
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error();
     return value;
   } catch { throw new RpError('InvalidJsonBody'); }
