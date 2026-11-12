@@ -1,0 +1,14 @@
+{
+  "command": "client-data",
+  "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiWTJoaGJHeGxibWRsIiwib3JpZ2luIjoiaHR0cHM6Ly9ycC50ZXN0IiwiY3Jvc3NPcmlnaW4iOmZhbHNlfQ",
+  "_fixture": {
+    "classification": "SYNTHETIC",
+    "source": "analysis/fixtures_test.mbt bridge_fixture(\"verify\")",
+    "notice": "Public test-only bytes, not a real user credential or device-interoperability record. No private key is included.",
+    "change": "Original public synthetic fixture bytes.",
+    "expected": {
+      "status": "PASS",
+      "check": "json"
+    }
+  }
+}

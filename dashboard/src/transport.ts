@@ -89,6 +89,7 @@ export interface LocalReport {
   report: CoreReport;
   configuration?: Session["config"];
   databaseTransaction?: DatabaseTransaction;
+  inputProvenance?: "SYNTHETIC" | "UNVERIFIED";
 }
 
 export function captureLocalReport(

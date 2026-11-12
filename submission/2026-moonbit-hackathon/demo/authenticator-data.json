@@ -1,0 +1,14 @@
+{
+  "command": "authenticator-data",
+  "authenticatorData": "-wzrYG4HT_Czv9YrnDzimTB1YeEcGdr8D8kazLmcUe4BAAAAAA",
+  "_fixture": {
+    "classification": "SYNTHETIC",
+    "source": "analysis/fixtures_test.mbt bridge_fixture(\"verify\")",
+    "notice": "Public test-only bytes, not a real user credential or device-interoperability record. No private key is included.",
+    "change": "Original public synthetic fixture bytes.",
+    "expected": {
+      "status": "PASS",
+      "check": "authenticator_data"
+    }
+  }
+}

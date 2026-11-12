@@ -1,0 +1,33 @@
+{
+  "command": "verify-assertion",
+  "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiWTJoaGJHeGxibWRsIiwib3JpZ2luIjoiaHR0cHM6Ly9ycC50ZXN0IiwiY3Jvc3NPcmlnaW4iOmZhbHNlfQ",
+  "authenticatorData": "-wzrYG4HT_Czv9YrnDzimTB1YeEcGdr8D8kazLmcUe4BAAAAAA",
+  "signature": "MEQCIHZ25wrJ4zOqILaSqBnxOzlY33agrEFc1cpM4GRuAbvGAiBBiokpXZYjVrtv2AbpCZRgxghfu1YDBuu35h-s5BM8-g",
+  "credentialId": "Y3JlZGVudGlhbA",
+  "userHandle": "YWNjb3VudA",
+  "expectedChallenge": "ZGlmZmVyZW50LWNoYWxsZW5nZQ",
+  "credential": {
+    "credentialId": "Y3JlZGVudGlhbA",
+    "userHandle": "YWNjb3VudA",
+    "publicKey": "pQECAyYgASFYIDZ7-LHDcH1N7DkagxRx8XEQ11pBAduZ0NyKRlPGXG25IlggPa8xmkOX7Dg9gut9xcvJ38vywx7SWwKiRTia-OZsVOY",
+    "signCount": 0,
+    "backupEligible": null
+  },
+  "policy": {
+    "rpId": "rp.test",
+    "allowedOrigins": [
+      "https://rp.test"
+    ]
+  },
+  "_fixture": {
+    "classification": "SYNTHETIC",
+    "source": "analysis/fixtures_test.mbt bridge_fixture(\"verify\")",
+    "notice": "Public test-only bytes, not a real user credential or device-interoperability record. No private key is included.",
+    "change": "Change only the trusted expectedChallenge; retain the original valid signed assertion.",
+    "expected": {
+      "status": "FAIL",
+      "check": "challenge",
+      "errorKind": "ChallengeMismatch"
+    }
+  }
+}

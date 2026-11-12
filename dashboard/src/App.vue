@@ -87,6 +87,13 @@ const resultTitle = computed(() => {
   return "Core request completed";
 });
 
+const reportSourceCaption = computed(() => {
+  if (selectedReport.value?.source !== "import") return "Local reference RP";
+  return selectedReport.value.inputProvenance === "SYNTHETIC"
+    ? "SYNTHETIC import"
+    : "Imported request";
+});
+
 function statusClass(status?: string): string {
   if (status === "PASS" || status === "ADVANCED") return "pass";
   if (status === "FAIL") return "fail";
@@ -158,8 +165,10 @@ async function connect() {
 function remember(
   envelope: ReportEnvelope | CoreReport,
   source: LocalReport["source"],
+  inputProvenance?: LocalReport["inputProvenance"],
 ) {
   const entry = captureLocalReport(envelope, source, session.value?.config);
+  if (source === "import") entry.inputProvenance = inputProvenance;
   reports.value = [entry, ...reports.value].slice(0, 30);
   selectedReport.value = entry;
 }
@@ -274,7 +283,7 @@ async function analyzeImport() {
       ...input,
       command: importCommand.value,
     });
-    remember(result, "import");
+    remember(result, "import", input._fixture?.classification === "SYNTHETIC" ? "SYNTHETIC" : "UNVERIFIED");
   } catch (error) {
     notice.value = describeError(error);
   } finally {
@@ -362,7 +371,7 @@ onMounted(connect);
       <main>
         <div class="page-heading">
           <div>
-            <div class="eyebrow">WEBAUTHN VERIFICATION</div>
+            <div class="eyebrow">MOONBIT · WEBAUTHN / PASSKEY TOOLKIT</div>
             <h1>
               {{
                 tab === "browser"
@@ -375,7 +384,7 @@ onMounted(connect);
             <p>
               {{
                 tab === "browser"
-                  ? "Create a temporary passkey and verify a real browser assertion."
+                  ? "Trace a passkey response from protocol bytes to signature, policy and committed state."
                   : tab === "import"
                     ? "Send original protocol bytes to your local MoonBit Core."
                     : "Review the Core results collected in this browser session."
@@ -389,6 +398,11 @@ onMounted(connect);
           >
             <span>↓</span> Export safe report
           </button>
+        </div>
+
+        <div v-if="selectedReport?.source === 'import'" class="evidence-notice" role="status">
+          <strong>{{ selectedReport.inputProvenance === 'SYNTHETIC' ? 'SYNTHETIC FIXTURE' : 'IMPORTED INPUT · SOURCE UNVERIFIED' }}</strong>
+          <span>MoonBit Core result from the imported request and its policy. Browser-device evidence and database commit are recorded separately.</span>
         </div>
 
         <div v-if="notice" class="notice" role="alert">
@@ -658,7 +672,7 @@ onMounted(connect);
                   {{
                     busy ||
                     (report
-                      ? `${successfulChecks} checks passed · ${selectedReport?.source === "import" ? "Imported request" : "Local reference RP"}`
+                      ? `${successfulChecks} checks passed · ${reportSourceCaption}`
                       : "Each check will show its result from the Core response.")
                   }}
                 </p>
@@ -788,6 +802,12 @@ onMounted(connect);
                   </dd>
                 </div>
               </dl>
+              <p v-if="report?.counter?.status === 'WARNING'" class="counter-explanation">
+                The received counter did not increase. This risk signal can also reflect request ordering or authenticator behavior.
+              </p>
+              <p v-else-if="report?.counter?.status === 'NOT_SUPPORTED'" class="counter-explanation">
+                Stored and received counters are both zero. Other protocol and signature checks still apply.
+              </p>
             </section>
             <section class="panel client-panel">
               <div class="panel-heading">
