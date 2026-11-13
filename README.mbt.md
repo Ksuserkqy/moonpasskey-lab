@@ -4,7 +4,7 @@
 
 基于 MoonBit 的 Passkey 协议分析与安全验证工具。从原始认证字节出发，逐项解释协议解析、ES256 验签与 RP 策略检查的结果。
 
-[快速体验](#30-秒快速开始) · [演示讲解稿](submission/2026-moonbit-hackathon/DEMO_SCRIPT.md) · [测试证据](submission/2026-moonbit-hackathon/TEST_EVIDENCE.md) · [参赛材料](submission/2026-moonbit-hackathon/PROJECT_OVERVIEW.md)
+[快速体验](#30-秒快速开始) · [CLI 文档](docs/CLI.md) · [测试记录](docs/DEVELOPMENT.md) · [设备互操作](docs/ASSERTION-INTEROP.md)
 
 ## 为什么需要这个工具
 
@@ -25,11 +25,11 @@ MoonPasskey Lab 将有界解析、密码学验证、RP 策略与挑战生命周�
 
 ## 产品界面
 
-![Dashboard 本地浏览器测试首页](submission/2026-moonbit-hackathon/assets/dashboard.jpg)
+![Dashboard 本地浏览器测试首页](docs/assets/dashboard.jpg)
 
 真实运行的本地界面。首页等待使用者注册测试 Passkey，尚未执行的检查显示 `NOT_PERFORMED`。
 
-![公开 SYNTHETIC 夹具的真实 Core 验证结果](submission/2026-moonbit-hackathon/assets/verification-result.jpg)
+![公开 SYNTHETIC 夹具的真实 Core 验证结果](docs/assets/verification-result.jpg)
 
 上图来自公开 **SYNTHETIC** 夹具的实际 Core 调用。样本 UP=1、UV=0，preferred 策略满足要求，DER 签名有效；计数器 0→0 显示 `NOT_SUPPORTED`。真实设备历史记录另见设备矩阵。
 
@@ -62,25 +62,27 @@ moon update
 ```sh
 ./scripts/demo.sh cli
 
-moon run cmd/main --target js -- --input submission/2026-moonbit-hackathon/demo/verify-valid.json
-moon run cmd/main --target js -- --input submission/2026-moonbit-hackathon/demo/verify-wrong-origin.json --json
+moon run cmd/main --target js -- --input examples/fixtures/verify-valid.json
+moon run cmd/main --target js -- --input examples/fixtures/verify-wrong-origin.json --json
 ```
 
-有效输入退出 0。无效签名、错误 challenge、错误 origin 和未满足 UV required 的输入退出 2。完整 CLI 契约还覆盖参数与文件读取错误。[CLI 文档](docs/CLI.md) · [夹具来源与预期](submission/2026-moonbit-hackathon/demo/README.md)
+有效输入退出 0。无效签名、错误 challenge、错误 origin 和未满足 UV required 的输入退出 2。完整 CLI 契约还覆盖参数与文件读取错误。[CLI 文档](docs/CLI.md) · [夹具来源与预期](examples/fixtures/README.md)
 
-![CLI 实际输出的浏览器排版截图，SYNTHETIC 输入](submission/2026-moonbit-hackathon/assets/cli-demo.jpg)
+![CLI 实际输出的浏览器排版截图，SYNTHETIC 输入](docs/assets/cli-demo.jpg)
+
+截图保留了历史运行时的文件路径；当前命令和夹具路径以上方示例为准。[素材说明](docs/assets/README.md)
 
 ## Dashboard 演示
 
-无需设备即可打开 **Import assertion**，选择 Verify assertion，载入 `submission/2026-moonbit-hackathon/demo/verify-valid.json` 并运行 MoonBit Core。结果页展示签名、flags、challenge / origin / RP ID 检查和计数器状态。依次载入四个负例即可检查拒绝原因。
+无需设备即可打开 **Import assertion**，选择 Verify assertion，载入 `examples/fixtures/verify-valid.json` 并运行 MoonBit Core。结果页展示签名、flags、challenge / origin / RP ID 检查和计数器状态。依次载入四个负例即可检查拒绝原因。
 
-设备演示使用 **Browser test → Register test passkey → Verify with passkey**。系统凭证操作由使用者亲自完成，成功报告在服务端事务提交后返回。**Test reports → Export safe report** 导出字段允许列表限定的结果，需填写实际环境与来源。导入请求按自身策略分析，本地服务顶部配置用于浏览器流程。[4 分 40 秒演示脚本](submission/2026-moonbit-hackathon/DEMO_SCRIPT.md)
+设备演示使用 **Browser test → Register test passkey → Verify with passkey**。系统凭证操作由使用者亲自完成，成功报告在服务端事务提交后返回。**Test reports → Export safe report** 导出字段允许列表限定的结果，需填写实际环境与来源。导入请求按自身策略分析，本地服务顶部配置用于浏览器流程。[参考 RP 使用说明](docs/REFERENCE-RP.md)
 
 ## 技术架构
 
-![MoonBit Core、CLI、RP、Dashboard 与 SQLite 的关系](submission/2026-moonbit-hackathon/assets/architecture.svg)
+![MoonBit Core、CLI、RP、Dashboard 与 SQLite 的关系](docs/assets/architecture.svg)
 
-MoonBit `analysis` 提供统一 JSON 入口。Node 宿主加载其 JS 产物并负责 HTTP(S)、随机挑战、会话和 SQLite；Vue 负责浏览器 API、传输编码和展示。Core 校验可信宿主提供的上下文，RP 负责挑战消费与凭证更新的同库原子提交。[详细架构](submission/2026-moonbit-hackathon/ARCHITECTURE.md) · [挑战生命周期](docs/CHALLENGE-LIFECYCLE.md)
+MoonBit `analysis` 提供统一 JSON 入口。Node 宿主加载其 JS 产物并负责 HTTP(S)、随机挑战、会话和 SQLite；Vue 负责浏览器 API、传输编码和展示。Core 校验可信宿主提供的上下文，RP 负责挑战消费与凭证更新的同库原子提交。[详细架构](docs/ARCHITECTURE.md) · [挑战生命周期](docs/CHALLENGE-LIFECYCLE.md)
 
 ## MoonBit 核心实现
 
@@ -96,7 +98,7 @@ MoonBit `analysis` 提供统一 JSON 入口。Node 宿主加载其 JS 产物并�
 
 已有验收记录为 **631 个独立用例**，按 Core 491、CLI 7、Reference RP / 预检 57、Dashboard / 报告 26、部署 50 统计。跨目标重复运行只计一次；部署套件输出 51 项，其中 1 项为父测试。
 
-四目标 Core / CLI 回归均通过。Ubuntu 22.04 隔离虚拟机中实际验证 Nginx 配置、上游 TLS、Basic Auth、systemd unit 和 Shell 脚本。参赛整理另复验 Dashboard 26 项、CLI 演示、干净源码构建和实际 HTTP / Core 路径，命令与证据范围详见测试记录。[测试证据](submission/2026-moonbit-hackathon/TEST_EVIDENCE.md) · [GitHub Actions](https://github.com/Ksuserkqy/moonpasskey-lab/actions) · [Ubuntu 验证](deploy/ubuntu-nginx/VALIDATION.md)
+四目标 Core / CLI 回归均通过。Ubuntu 22.04 隔离虚拟机中实际验证 Nginx 配置、上游 TLS、Basic Auth、systemd unit 和 Shell 脚本。此前另复验 Dashboard 26 项、CLI 演示、干净源码构建和实际 HTTP / Core 路径，命令与证据范围详见测试记录。[测试记录](docs/DEVELOPMENT.md) · [GitHub Actions](https://github.com/Ksuserkqy/moonpasskey-lab/actions) · [Ubuntu 验证](deploy/ubuntu-nginx/VALIDATION.md)
 
 2026-11-12 的 Safari/macOS 平台 Passkey 历史记录为 UV preferred、实际 UV=true、DER 有效、Core 12 项 PASS。另已归档维护者确认的 Chrome/macOS UV Required 注册及两次 Assertion PASS，DER有效、数据库 COMMITTED，Provider 标签为 1Password、来源 UNKNOWN。Safari required、Google Password Manager、iOS 和公网 HTTPS 验收仍待执行。[设备矩阵与历史报告](docs/ASSERTION-INTEROP.md)
 
@@ -113,16 +115,10 @@ MoonBit `analysis` 提供统一 JSON 入口。Node 宿主加载其 JS 产物并�
 
 ## 已知限制
 
-当前算法为 ES256，登记流程为 `none` 最小测试登记。其他 attestation 格式语义、证书链与元数据服务、生产账户及恢复、分布式部署、独立安全审计、性能基准和模糊测试仍待后续工作。参考 RP 用于本地实验。公网部署准备已有隔离验证，真实服务器和 Let's Encrypt 操作尚未执行。[完整限制](submission/2026-moonbit-hackathon/LIMITATIONS.md)
+当前算法为 ES256，登记流程为 `none` 最小测试登记。其他 attestation 格式语义、证书链与元数据服务、生产账户及恢复、分布式部署、独立安全审计、性能基准和模糊测试仍待后续工作。参考 RP 用于本地实验。公网部署准备已有隔离验证，真实服务器和 Let's Encrypt 操作尚未执行。[完整限制](docs/LIMITATIONS.md)
 
 ## 许可与贡献
 
 项目采用 **Apache-2.0**。第三方代码及官方测试向量沿用各自许可和来源说明。[LICENSE](LICENSE) · [第三方记录](webauthn/CRYPTO-VECTORS-NOTICE.md)
 
-欢迎提交可复现输入、协议问题和文档修正。安全问题请先移除真实凭证与隐私数据。贡献需遵循仓库 AGENTS.md，运行受影响测试，通过 Pull Request 讨论并由维护者验收。当前处于参赛功能冻结期。[贡献约定](CONTRIBUTING.md)
-
-## 参赛材料
-
-[最终验收报告](submission/2026-moonbit-hackathon/FINAL_READINESS.md) · [项目概览](submission/2026-moonbit-hackathon/PROJECT_OVERVIEW.md) · [申报参考草稿](submission/2026-moonbit-hackathon/APPLICATION.md) · [AI 辅助开发历程](submission/2026-moonbit-hackathon/DEVELOPMENT_STORY.md) · [FAQ](submission/2026-moonbit-hackathon/FAQ.md) · [资格核对](submission/2026-moonbit-hackathon/ELIGIBILITY.md) · [提交清单](submission/2026-moonbit-hackathon/SUBMISSION_CHECKLIST.md)
-
-申报参考草稿由 AI 辅助整理。章程要求的一页 Markdown 项目申报书需要参赛者亲自撰写；资格、报名信息与当期时间以主办方确认结果为准。
+欢迎提交可复现输入、协议问题和文档修正。安全问题请先移除真实凭证与隐私数据。贡献需遵循仓库 AGENTS.md，运行受影响测试，通过 Pull Request 讨论并由维护者验收。[贡献约定](CONTRIBUTING.md)
