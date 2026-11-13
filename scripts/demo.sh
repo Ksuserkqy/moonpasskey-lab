@@ -49,7 +49,7 @@ moon build cmd/main --target js --deny-warn
 
 if [ "$mode" = cli ]; then
   while IFS='|' read -r name status error check; do
-    input="submission/2026-moonbit-hackathon/demo/$name.json"
+    input="examples/fixtures/$name.json"
     expected_exit=0
     if [ "$status" = FAIL ]; then expected_exit=2; fi
     printf '\n=== SYNTHETIC %s (expected %s) — human ===\n' "$name" "$status"
