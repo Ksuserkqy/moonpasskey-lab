@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### 文档
+
+- 在 README 中补充第三方测试向量来源与 Dashboard 字体许可证的入口。
+
 ### Phase 1 基础包
 
 - 新增 MoonBit `base64url` 包，提供 URL-safe 编解码、可选 padding、非法字符位置、编码格式错误与 1 MiB 二进制大小限制。

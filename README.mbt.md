@@ -119,6 +119,10 @@ MoonBit `analysis` 提供统一 JSON 入口。Node 宿主加载其 JS 产物并�
 
 ## 许可与贡献
 
-项目采用 **Apache-2.0**。第三方代码及官方测试向量沿用各自许可和来源说明。[LICENSE](LICENSE) · [第三方记录](webauthn/CRYPTO-VECTORS-NOTICE.md)
+项目采用 **Apache-2.0**。第三方代码、测试向量和字体沿用各自许可和来源说明：
+
+- [项目许可证](LICENSE)；[依赖说明](docs/ARCHITECTURE.md)；[密码学测试向量来源](webauthn/CRYPTO-VECTORS-NOTICE.md)
+- [CBOR 中的 W3C 示例](cbor/W3C-NOTICE.md)；[WebAuthn W3C 测试向量](webauthn/W3C-NOTICE.md)
+- [Dashboard Inter 字体许可证](dashboard/public/Inter-LICENSE.txt)
 
 欢迎提交可复现输入、协议问题和文档修正。安全问题请先移除真实凭证与隐私数据。贡献需遵循仓库 AGENTS.md，运行受影响测试，通过 Pull Request 讨论并由维护者验收。[贡献约定](CONTRIBUTING.md)
