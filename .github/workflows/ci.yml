@@ -80,6 +80,54 @@ jobs:
           CLI_TARGET: ${{ matrix.target }}
         run: node --test cmd/main/cli.test.mjs
 
+  windows-native:
+    name: Windows native CLI
+    runs-on: windows-2022
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: '24.18.0'
+      - name: Install pinned MoonBit toolchain and core
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          $script = Invoke-RestMethod https://cli.moonbitlang.com/install/powershell.ps1
+          Invoke-Expression $script
+          "$HOME\.moon\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Verify toolchain and update registry
+        run: |
+          moon version --all
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $mooncVersion = moonc -v | Out-String
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Write-Host $mooncVersion
+          if (-not $mooncVersion.Contains($env:MOONBIT_INSTALL_VERSION)) {
+            throw "Unexpected MoonBit compiler version: $mooncVersion"
+          }
+          node --version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          moon update
+      - name: Check, test, and build native target
+        run: |
+          moon check --target native --deny-warn
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          moon test --target native --deny-warn
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          moon build --target native --deny-warn
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test CLI entry point
+        env:
+          CLI_TARGET: native
+        run: node --test cmd/main/cli.test.mjs
+
   reference-rp:
     name: Reference RP and concurrency
     runs-on: ubuntu-24.04

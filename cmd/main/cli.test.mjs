@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
-import { appendFileSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { appendFileSync, mkdirSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, test } from 'node:test';
@@ -38,6 +38,19 @@ test('CLI analyzes original ClientDataJSON bytes with redacted JSON output', () 
   assert.equal(report.clientData.challenge.redacted, true);
   assert.equal(report.clientData.origin, 'https://example.com');
   assert.equal(result.stdout.includes(clientDataJSON), false);
+});
+
+test('CLI reads a valid request from a path with spaces and Unicode', () => {
+  const nested = join(directory, '测试 folder 😀');
+  mkdirSync(nested);
+  const path = join(nested, '请求 file 😀.json');
+  const clientDataJSON = Buffer.from('{"type":"webauthn.get","challenge":"AQ","origin":"https://example.com"}').toString('base64url');
+  writeFileSync(path, JSON.stringify({ command: 'client-data', clientDataJSON }), { mode: 0o600 });
+  const result = run(['--input', path, '--json']);
+  assert.equal(result.status, 0, result.stderr);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.status, 'PASS');
+  assert.equal(report.clientData.type, 'webauthn.get');
 });
 
 test('CLI independently analyzes AuthenticatorData with readable text output', () => {

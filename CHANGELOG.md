@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Windows CI
+
+- 增加 Windows native 的 Core 构建和测试及 CLI 集成检查，覆盖含空格、中文和 emoji 的路径；平台验证结果以 CI 实际运行记录为准。
+
 ### CLI 输入限制
 
 - 对单次 CLI 文件输入设置 12,582,912 字节上限，从同一打开的文件句柄限量读取；超限返回 `InputTooLarge` 和退出码 2。
