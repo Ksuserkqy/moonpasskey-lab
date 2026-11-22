@@ -1,4 +1,13 @@
 ///|
+const MAX_INPUT_BYTES : Int32 = 12_582_912
+
+///|
+priv enum InputReadFailure {
+  InputTooLarge
+  InputReadError
+}
+
+///|
 fn usage() -> Unit {
   println("MoonPasskey Lab analysis CLI")
   println("Usage: moon run cmd/main -- --input request.json [--json]")
@@ -81,8 +90,13 @@ fn main {
     cli_error("MissingInputFile", json_output)
     @env.exit(64)
   }
-  let bytes = @fs.read_file_to_bytes(path) catch {
-    _ => {
+  let bytes = match read_input_bounded(path) {
+    Ok(bytes) => bytes
+    Err(InputTooLarge) => {
+      cli_error("InputTooLarge", json_output)
+      @env.exit(2)
+    }
+    Err(InputReadError) => {
       cli_error("InputReadError", json_output)
       @env.exit(74)
     }

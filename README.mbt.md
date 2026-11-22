@@ -92,7 +92,7 @@ MoonBit `analysis` 提供统一 JSON 入口。Node 宿主加载其 JS 产物并�
 | `webauthn` | 客户端与认证器数据、attestation 结构、ES256、公钥点、DER 验签和 Assertion 策略 |
 | `analysis` / `cmd/main` | 组合验证入口、脱敏报告、文件输入及退出码 |
 
-签名消息使用原始 `authenticatorData || SHA256(clientDataJSON)`。密码学计算复用固定 MoonCrypt `0.4.16` 的纯 MoonBit 路径，文件 IO 使用 `moonbitlang/x@0.5.7`。Core 与 CLI 在 wasm、wasm-gc、js、native 四目标验证。当前网页使用 Node 上的 JS Core。[协议映射](docs/SPEC_MAPPING.md) · [依赖与密码学选择](webauthn/CRYPTO-VECTORS-NOTICE.md)
+签名消息使用原始 `authenticatorData || SHA256(clientDataJSON)`。密码学计算复用固定 MoonCrypt `0.4.16` 的纯 MoonBit 路径。Core 与 CLI 在 wasm、wasm-gc、js、native 四目标验证；CLI 的 wasm 文件读取依赖固定 Moonrun 内部接口。[CLI 限制](docs/CLI.md) · [协议映射](docs/SPEC_MAPPING.md) · [依赖与密码学选择](webauthn/CRYPTO-VECTORS-NOTICE.md)
 
 ## 测试与工程证据
 

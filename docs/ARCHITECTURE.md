@@ -286,4 +286,4 @@ flowchart LR
 
 `dashboard/` 只执行原生浏览器 WebAuthn 调用、ArrayBuffer 传输转换和结果展示。原始 clientDataJSON 从浏览器返回值直接编码，服务端解码后由 MoonBit 完成哈希与验签。静态文件由 RP 同源提供，依赖和字体在构建时本地打包。Dashboard 对外导出使用字段允许列表脱敏。
 
-新增直接依赖 moonbitlang/x@0.5.7 用于 CLI 文件 IO，该版本已经由 MoonCrypt 的既有依赖树引入。固定 MoonCrypt 0.4.16 和工具链保持原版本。JS 集成通过真实编译产物的 HTTP 测试验证，其他目标仍可独立使用 Core 和 CLI。[CLI](CLI.md) · [参考 RP](REFERENCE-RP.md) · [事务机制](CHALLENGE-LIFECYCLE.md)
+P7 引入直接依赖 moonbitlang/x@0.5.7 用于当时的 CLI 文件 IO，该版本已经由 MoonCrypt 的既有依赖树引入。当前 CLI 使用目标专用的有界文件读取，wasm 目标依赖固定 Moonrun 内部接口。固定 MoonCrypt 0.4.16 和工具链保持原版本。JS 集成通过真实编译产物的 HTTP 测试验证，其他目标仍可独立使用 Core 和 CLI。[CLI](CLI.md) · [参考 RP](REFERENCE-RP.md) · [事务机制](CHALLENGE-LIFECYCLE.md)

@@ -170,7 +170,7 @@ Counter 的 `NonIncreasing` 代表潜在风险，默认继续返回成功和风�
 | Challenge 生命周期与事务 | P7 本地参考宿主已实现 CSPRNG、绑定、时效、一次性消费与同库 version CAS，生产账户/分布式系统待实现 |
 | ES384、ES512、RS256、PS256、EdDSA 等密码学能力 | `NOT_IMPLEMENTED` |
 | 证书链、attestation 逐格式签名与信任验证 | `NOT_IMPLEMENTED` |
-| 文件分析 CLI、报告导出、退出码契约 | P7 已实现，文件整体读取先于 Core 限长，宿主需控制超大文件 |
+| 文件分析 CLI、报告导出、退出码契约 | 已实现；CLI 输入字节有上限，特殊文件可能阻塞，wasm 目标依赖固定 Moonrun 内部接口 |
 | Vue Dashboard 与 JS bridge | P7 已实现 Vue/Node/编译 JS Core，同源本地展示；浏览器直接 Wasm 集成尚未实现 |
 | 真实设备及浏览器互操作执行 | Safari/macOS preferred 和 Chrome/macOS required 已取得真实 Core PASS，待完成环境及复现步骤见 ASSERTION-INTEROP.md |
 | 持续集成测试流水线 | 已配置四目标检查、测试、构建、格式和接口验证，实际远程状态见对应 PR |
@@ -182,7 +182,7 @@ Counter 的 `NonIncreasing` 代表潜在风险，默认继续返回成功和风�
 
 本地参考 RP、挑战生命周期、SQLite 原子提交、真实竞争测试、CLI 和 Vue Dashboard 已实现。最小注册适配器仅支持 fmt=none 的空 Map，完成测试所需绑定与 ES256 点检查。完整生产注册、attestation 信任和数组型格式语义验证保持未实现。
 
-参考服务默认内存存储，显式文件路径才持久化公开凭证状态与脱敏报告。单机 SQLite、可信本地会话和系统时钟属于运行边界。长期记录清理、生产账户认证恢复、全局限流、分布式事务和运维审计尚未实现。数据库 API 使用 Node 24.18 内置 node:sqlite，官方稳定性等级为 Release candidate。CLI 文件 API 会先读取全文件，超大不可信文件需在宿主侧设置资源预算。
+参考服务默认内存存储，显式文件路径才持久化公开凭证状态与脱敏报告。单机 SQLite、可信本地会话和系统时钟属于运行边界。长期记录清理、生产账户认证恢复、全局限流、分布式事务和运维审计尚未实现。数据库 API 使用 Node 24.18 内置 node:sqlite，官方稳定性等级为 Release candidate。CLI 限制单次输入读取，特殊文件仍可能阻塞；wasm 和 wasm-gc 文件读取依赖固定 Moonrun 的内部接口，升级时须复验。[CLI 边界](CLI.md)
 
 真实设备和浏览器覆盖按实际执行填写，未执行环境保持 NOT_PERFORMED。交互中的系统认证由维护者完成，自动化测试的合成签名与真实设备证据分别记录。[互操作矩阵](ASSERTION-INTEROP.md) · [参考 RP](REFERENCE-RP.md)
 

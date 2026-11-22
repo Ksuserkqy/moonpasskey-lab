@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+### CLI 输入限制
+
+- 对单次 CLI 文件输入设置 12,582,912 字节上限，从同一打开的文件句柄限量读取；超限返回 `InputTooLarge` 和退出码 2。
+- wasm 和 wasm-gc 的有界读取依赖固定版本 Moonrun 内部接口；特殊文件可能阻塞。
+
 ### 文档
 
 - 在 README 中补充第三方测试向量来源与 Dashboard 字体许可证的入口。

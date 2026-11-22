@@ -1,6 +1,6 @@
 # Analysis CLI
 
-Phase 7 扩展已有 `cmd/main`。CLI、参考 RP 和 Dashboard 共用纯 MoonBit `analysis` 包及 P1–P6 验证入口。工具链固定为 `0.10.20+65efd5b93`，MoonCrypt 固定为 `0.4.16`。文件读取使用已存在于依赖树的 `moonbitlang/x@0.5.7`，该版本现列为直接依赖。
+Phase 7 扩展已有 `cmd/main`。CLI、参考 RP 和 Dashboard 共用纯 MoonBit `analysis` 包及 P1–P6 验证入口。工具链固定为 `0.10.20+65efd5b93`，MoonCrypt 固定为 `0.4.16`。
 
 ## 运行
 
@@ -17,7 +17,7 @@ moon run cmd/main --target native -- --help
 | 退出码 | 含义 |
 | --- | --- |
 | 0 | PASS 或帮助 |
-| 2 | Core 输入、解析、策略或验签失败 |
+| 2 | 文件超限、Core 输入、解析、策略或验签失败 |
 | 64 | 参数错误或缺少输入文件 |
 | 70 | 内部报告契约错误 |
 | 74 | 文件读取失败 |
@@ -77,7 +77,9 @@ ClientData 独立分析使用下面的项目合成输入。其 Base64URL 内容�
 
 `status` 是 PASS 或 FAIL，`checks` 包含逐步状态，错误包含类型、静态 context 和适用的 offset。独立解析成功时，尚未执行的策略检查保持 NOT_PERFORMED。UV preferred 时 PASS 表示满足策略，实际 UV 值见 flags。Counter WARNING 表示非递增风险。P6 在错误处短路，无法从错误确认的其他步骤保守报告 NOT_PERFORMED。
 
-JSON envelope 限制4,194,304个 UTF-16 code units，深度32并拒绝重复键。二进制字段复用1 MiB限制和已有 CBOR/JSON预算。CLI 读取原始文件字节并严格解码 UTF-8，非法字节返回 InvalidInputUtf8。文件 API 先读取整个文件，再执行 Core envelope 检查。处理不可信大文件的宿主应另设文件大小与进程资源限制。
+JSON envelope 限制4,194,304个 UTF-16 code units，深度32并拒绝重复键。二进制字段复用1 MiB限制和已有 CBOR/JSON预算。CLI 从同一文件句柄最多读取 12,582,913 字节；超过 12,582,912 字节返回 `InputTooLarge` 和退出码 2。读取失败返回 `InputReadError` 和退出码 74；输入严格按 UTF-8 解码，非法字节返回 `InvalidInputUtf8`。字节限制不替代 Core 的字符与解析预算。FIFO 等特殊文件可能在打开或读取时阻塞，进程级总内存、时间和并发预算仍由运行环境管理。
+
+wasm 和 wasm-gc 的 CLI 文件读取依赖固定版本 Moonrun 的内部 async 宿主接口；该接口没有上游稳定性保证，工具链升级前须重新验证四目标 CLI 测试。wasm-gc 的文件路径额外限制为 32,768 个 UTF-16 code units。其他宿主需要实现相同接口，不能只凭 Core 的可移植性推断 CLI 文件读取可用。
 
 `analysis.run_json` 返回脱敏报告。`analysis.run_host_json` 额外返回服务端登记记录，属于可信宿主内部接口。参考 RP 在 HTTP 输出和报告保存前再次过滤。两者均有黑盒测试。
 
