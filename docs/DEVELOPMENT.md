@@ -573,3 +573,9 @@ git diff --check
 本地 Darwin arm64、Node.js 24.18.0，隔离使用 moon/moonrun 0.1.20261104 与 moonc/core 0.10.20+65efd5b93。`moon info`、`moon fmt`、`moon fmt --check` 和 `git diff --check` 通过；wasm、wasm-gc、js、native 的 `moon check`、`moon test`、`moon build` 均以 `--deny-warn` 通过，每目标 Core 测试 491 通过、0 失败。JS 构建提示 TypeScript 声明仅支持 ESM，构建成功。
 
 `CLI_TARGET=<target> node --test cmd/main/cli.test.mjs` 在四目标各为 11 通过、0 失败，比既有 7 项新增 4 项，并扩充文件读取错误覆盖；涵盖输入字节上限前后、多字节 UTF-8、空输入及持续写入的 FIFO。上述结果为本地测试；Linux 远程 CI 请查看对应 PR 当前提交的检查结果，Windows 实机尚未验证。wasm 文件读取使用固定 Moonrun 的非公开宿主接口，接口升级兼容性与特殊文件可能阻塞的边界见 [CLI 文档](CLI.md)。
+
+## Windows native CI 验证（2026-11-23）
+
+针对提交 `fba8357` 的 [Windows CI 运行记录](https://github.com/Ksuserkqy/moonpasskey-lab/actions/runs/45049542852/job/137291398261) 使用 `windows-2022`、Node.js 24.18.0 和固定 moonc 0.10.20+65efd5b93。native 目标的 `moon check`、`moon test` 和 `moon build` 均以 `--deny-warn` 通过，MoonBit 测试 491 通过、0 失败；CLI 集成测试 11 通过、0 失败，Unix FIFO 测试按平台条件跳过。用例覆盖包含空格、中文和 emoji 的有效请求路径、输入大小边界、非法 UTF-8、缺失路径和目录错误。
+
+该记录是 GitHub Actions Windows runner 的自动化证据，并非维护者 Windows 实机或真实 Passkey 设备测试。PR 当前提交的 CI 状态以其检查结果为准。
