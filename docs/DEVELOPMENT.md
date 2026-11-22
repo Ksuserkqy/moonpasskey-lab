@@ -567,3 +567,9 @@ git diff --check
 新真实UV Required、iPhone和Chrome流程尚未执行。历史P7的Safari/macOS preferred真实PASS继续保留，provider来源为MAINTAINER_SELECTED，旧导出未记录显式事务版本。P7.1 A1为NOT_PERFORMED，A2/A3因已验证HTTPS入口尚未建立而BLOCKED，A4–A9为NOT_PERFORMED。HTTPS模板经sh语法、RubyYAML解析和配置不变量检查，cloudflared本机未安装，尚未运行其实际ingress验证。
 
 维护者完成设备步骤并回传实际Dashboard脱敏导出后，再核对数据库提交、原始flags、DER与Core结果，追加新记录和更新Draft PR。[人工矩阵与命令](ASSERTION-INTEROP.md#phase-71-设备验收矩阵) · [HTTPS配置与清理](INTEROP-HTTPS.md)
+
+## CLI 有界读取验证（2026-11-22）
+
+本地 Darwin arm64、Node.js 24.18.0，隔离使用 moon/moonrun 0.1.20261104 与 moonc/core 0.10.20+65efd5b93。`moon info`、`moon fmt`、`moon fmt --check` 和 `git diff --check` 通过；wasm、wasm-gc、js、native 的 `moon check`、`moon test`、`moon build` 均以 `--deny-warn` 通过，每目标 Core 测试 491 通过、0 失败。JS 构建提示 TypeScript 声明仅支持 ESM，构建成功。
+
+`CLI_TARGET=<target> node --test cmd/main/cli.test.mjs` 在四目标各为 11 通过、0 失败，比既有 7 项新增 4 项，并扩充文件读取错误覆盖；涵盖输入字节上限前后、多字节 UTF-8、空输入及持续写入的 FIFO。上述结果为本地测试，Linux 远程 CI 和 Windows 实机尚未验证。wasm 文件读取使用固定 Moonrun 的非公开宿主接口，接口升级兼容性与特殊文件可能阻塞的边界见 [CLI 文档](CLI.md)。

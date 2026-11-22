@@ -3,7 +3,16 @@ import {
   "moonbitlang/core/env",
   "moonbitlang/core/json",
   "moonbitlang/core/encoding/utf8",
-  "moonbitlang/x/fs",
 }
 
 pkgtype(kind: "executable")
+
+options(
+  "native-stub": [ "input_native.c" ],
+  targets: {
+    "input_js.mbt": [ "js" ],
+    "input_native.mbt": [ "native" ],
+    "input_wasm.mbt": [ "wasm", "wasm-gc" ],
+  },
+  link: { "wasm-gc": { "export-memory-name": "memory" } },
+)
