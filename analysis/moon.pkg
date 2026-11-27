@@ -10,7 +10,5 @@ import {
 pkgtype(kind: "foreign_library")
 
 options(
-  link: {
-    "js": { "exports": [ "run_json", "run_host_json" ], "format": "cjs" },
-  },
+  link: { "js": { "format": "cjs" } },
 )

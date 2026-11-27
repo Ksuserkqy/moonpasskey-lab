@@ -579,3 +579,13 @@ git diff --check
 针对提交 `fba8357` 的 [Windows CI 运行记录](https://github.com/Ksuserkqy/moonpasskey-lab/actions/runs/45049542852/job/137291398261) 使用 `windows-2022`、Node.js 24.18.0 和固定 moonc 0.10.20+65efd5b93。native 目标的 `moon check`、`moon test` 和 `moon build` 均以 `--deny-warn` 通过，MoonBit 测试 491 通过、0 失败；CLI 集成测试 11 通过、0 失败，Unix FIFO 测试按平台条件跳过。用例覆盖包含空格、中文和 emoji 的有效请求路径、输入大小边界、非法 UTF-8、缺失路径和目录错误。
 
 该记录是 GitHub Actions Windows runner 的自动化证据，并非维护者 Windows 实机或真实 Passkey 设备测试。PR 当前提交的 CI 状态以其检查结果为准。
+
+## MoonBit 1.0 RC 工具链升级（2026-11-27）
+
+本地 Darwin arm64 使用隔离工具链：moon / moonrun `0.1.20261126`（`ccd306a`），moonc / core `1.0.0-rc1+3c0520448`，Node.js `24.18.0`。从官方归档获取二进制和匹配 core，下载的二进制通过该固定版本的官方 SHA-256 清单；全局工具链未更改。MoonCrypt `0.4.16` 和现有依赖版本不变。Windows 固定版本二进制与 core 的归档地址可访问，但 Windows 实际执行及本次变更的远程 CI 尚未验证。
+
+RC core 将 JSON 深度参数标记为弃用并计划将解析错误类型设为抽象。传输入口改用现有 ClientDataJSON 有界扫描器先检查全部 JSON、32 层容器上限和解码后重复键，再调用 core/json；保留 `ResourceLimit`、`DuplicateField` 和 `InvalidJson` 分类。新增公开的 `webauthn.validate_transport_json`，供桥接入口复用；接口变更记录于 `.mbti`。JS 外部导出改用 `#export_name`，名称保持不变。Moonrun 私有文件读取 ABI 仍依赖固定工具链。
+
+本地四目标各执行 `moon check`、`moon test`、`moon build`，均使用 `--deny-warn`，各 493 项测试通过；四目标 CLI 各 12 项通过；`moon info`、`moon fmt --check`、七个合成 CLI 场景及 Dashboard 检查、26 项测试和构建通过。实际启动本地 Demo 并通过 `http://localhost:18787/` 获取首页。四目标生成接口一致。JS 构建提示 CJS 暂不支持生成 TypeScript 声明。
+
+Reference RP 首次与其他测试并行执行时有 3 项并发断言失败，单独重跑 57 项全部通过；Node 输出文件描述符 unmanaged mode 警告，原因未确定，并发测试仍需关注。部署测试原先因沙箱禁止监听回环而有 2 项失败；允许本机回环后 43 项通过、1 项 Nginx 缺失跳过。新增预检版本测试后单独运行预检套件为 26 项通过。以上不是 Ubuntu 部署或 Windows 实机验证，也不是远程 CI 结果。

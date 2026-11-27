@@ -231,8 +231,8 @@ export async function runChecks(options) {
   });
   await add('moonbitVersion', () => {
     const result = command(options.moon, ['version', '--all']);
-    if (!result.ok || !/\bmoonc v0\.10\.20\+65efd5b93(?:\s|$)/m.test(result.output)) throw new CheckError('Moonc01020Build65efd5b93Required');
-    return 'moonc v0.10.20+65efd5b93';
+    if (!result.ok || !/\bmoonc v1\.0\.0-rc1\+3c0520448(?:\s|$)/m.test(result.output)) throw new CheckError('Moonc100rc1Build3c0520448Required');
+    return 'moonc v1.0.0-rc1+3c0520448';
   });
   await add('openssl', () => {
     const result = command(options.openssl, ['version']);
@@ -346,7 +346,7 @@ export async function runChecks(options) {
 
 function optionsFrom(args) {
   const options = { mode: 'preflight', envFile: '/etc/moonpasskey/reference-rp.env', serviceUser: 'moonpasskey',
-    moon: '/opt/moonbit-0.10.20/bin/moon', openssl: '/usr/bin/openssl',
+    moon: '/opt/moonbit-1.0.0-rc1/bin/moon', openssl: '/usr/bin/openssl',
     edgeCert: `/etc/letsencrypt/live/${DOMAIN}/fullchain.pem`,
     edgeKey: `/etc/letsencrypt/live/${DOMAIN}/privkey.pem`, network: false, checkDns: false, json: false };
   const fields = { '--mode': 'mode', '--env-file': 'envFile', '--service-user': 'serviceUser',

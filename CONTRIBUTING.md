@@ -57,7 +57,7 @@ PR 测试报告填写实际工具链版本、命令、通过与失败数量及�
 
 `MoonBit CI` 在 PR、`main` 推送及手动触发时运行，使用 Ubuntu 24.04 与 Node.js 24。四目标矩阵分别执行格式验证、生成接口比对、带 `--deny-warn` 的检查、测试、构建及现有入口运行。当前入口输出 `Hello`，协议分析 CLI 待后续实现。[CI 配置](.github/workflows/ci.yml)
 
-CI 使用 MoonBit 官方安装脚本，归档版本固定为 `0.10.20+65efd5b93`，包含匹配的工具链与 core。此归档对应已验收的 moon `0.1.20261104` 与 moonc `v0.10.20+65efd5b93`。安装命令为 `bash moonbit-install.sh 0.10.20+65efd5b93`，脚本从官方 HTTPS 地址下载。更换版本时重新核验 API、生成接口与四目标测试。JavaScript 测试使用 Node.js，native 使用 runner 的 C 工具链，wasm / wasm-gc 使用安装包中的 moonrun。[官方安装说明](https://docs.moonbitlang.com/en/stable/tutorial/tour.html#installation)
+CI 使用 MoonBit 官方安装脚本，归档版本固定为 `1.0.0-rc1+3c0520448`，包含匹配的工具链与 core。此归档对应 moon `0.1.20261126` 与 moonc `v1.0.0-rc1+3c0520448`。安装命令为 `bash moonbit-install.sh 1.0.0-rc1+3c0520448`，脚本从官方 HTTPS 地址下载。更换版本时重新核验 API、生成接口与四目标测试。JavaScript 测试使用 Node.js，native 使用 runner 的 C 工具链，wasm / wasm-gc 使用安装包中的 moonrun。[官方安装说明](https://docs.moonbitlang.com/en/stable/tutorial/tour.html#installation)
 
 CI 配置通过仓库策略要求合并前成功，GitHub Rulesets 和保护规则由用户另行确认设置。
 

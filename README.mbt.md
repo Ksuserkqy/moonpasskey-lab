@@ -44,7 +44,7 @@ MoonPasskey Lab 将有界解析、密码学验证、RP 策略与挑战生命周�
 
 环境就绪后只需一个启动命令。首次安装和构建需要下载依赖，启动时长尚未做基准测量。
 
-前置环境为 Git、Bash、Node.js **24.18.0** 和 MoonBit **0.10.20+65efd5b93**。固定工具链安装命令见部署手册的环境准备章节，macOS / Linux 均应先核对 `node --version` 与 `moonc -v`。隔离 MoonBit 安装需设置对应 `MOON_HOME`。[安装说明](deploy/ubuntu-nginx/README.md)
+前置环境为 Git、Bash、Node.js **24.18.0** 和 MoonBit **1.0.0-rc1+3c0520448**。固定工具链安装命令见部署手册的环境准备章节，macOS / Linux 均应先核对 `node --version` 与 `moonc -v`。隔离 MoonBit 安装需设置对应 `MOON_HOME`。[安装说明](deploy/ubuntu-nginx/README.md)
 
 ```sh
 git clone --branch main https://github.com/Ksuserkqy/moonpasskey-lab.git
@@ -96,7 +96,7 @@ MoonBit `analysis` 提供统一 JSON 入口。Node 宿主加载其 JS 产物并�
 
 ## 测试与工程证据
 
-已有验收记录为 **631 个独立用例**，按 Core 491、CLI 7、Reference RP / 预检 57、Dashboard / 报告 26、部署 50 统计。跨目标重复运行只计一次；部署套件输出 51 项，其中 1 项为父测试。
+此前验收记录为 **631 个独立用例**，按 Core 491、CLI 7、Reference RP / 预检 57、Dashboard / 报告 26、部署 50 统计。跨目标重复运行只计一次；部署套件输出 51 项，其中 1 项为父测试。RC 工具链的验证结果另见开发记录。
 
 四目标 Core / CLI 回归均通过。Ubuntu 22.04 隔离虚拟机中实际验证 Nginx 配置、上游 TLS、Basic Auth、systemd unit 和 Shell 脚本。此前另复验 Dashboard 26 项、CLI 演示、干净源码构建和实际 HTTP / Core 路径，命令与证据范围详见测试记录。[测试记录](docs/DEVELOPMENT.md) · [GitHub Actions](https://github.com/Ksuserkqy/moonpasskey-lab/actions) · [Ubuntu 验证](deploy/ubuntu-nginx/VALIDATION.md)
 

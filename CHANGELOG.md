@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+### MoonBit 工具链
+
+- 将项目与 CI 固定到 MoonBit `1.0.0-rc1+3c0520448`。传输 JSON 复用有界扫描器检查重复键与 32 层容器限制，保持原有错误分类。
+- 使用 `#export_name` 声明 JavaScript 桥接入口，并同步演示和部署预检的版本要求。平台验证范围见开发记录。
+
 ### Windows CI
 
 - 增加 Windows native 的 Core 构建和测试及 CLI 集成检查，覆盖含空格、中文和 emoji 的路径；平台验证结果以 CI 实际运行记录为准。

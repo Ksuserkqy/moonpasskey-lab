@@ -21,6 +21,8 @@ pub fn sha256(BytesView) -> Bytes
 
 pub fn validate_es256_credential_public_key(BytesView, limits? : @cbor.Limits) -> Result[Es256PublicKeyParameters, ParseError]
 
+pub fn validate_transport_json(String) -> Result[Unit, ParseError]
+
 pub fn verify_es256_signature(ValidatedEs256PublicKey, BytesView, BytesView) -> Result[Bool, CryptoError]
 
 pub fn verify_webauthn_es256_assertion(AssertionVerificationRequest, AssertionCredentialRecord, AssertionVerificationPolicy, limits? : @cbor.Limits) -> Result[AssertionVerificationResult, AssertionVerificationError]

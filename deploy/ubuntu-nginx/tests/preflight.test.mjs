@@ -158,6 +158,20 @@ test('offline CLI reports unperformed DNS/live checks and never creates a SQLite
   assert.equal(result.status, 2);
 });
 
+test('preflight accepts only the pinned MoonBit compiler build', t => {
+  const config = fixture(t);
+  const fakeMoon = join(config.directory, 'moon');
+  for (const [version, status] of [
+    ['v1.0.0-rc1+3c0520448', 'PASS'],
+    ['v1.0.0-rc1+wrong', 'FAIL'],
+    ['v0.10.20+65efd5b93', 'FAIL'],
+  ]) {
+    writeFileSync(fakeMoon, `#!/bin/sh\nprintf '%s\\n' 'moonc ${version} (test)'\n`, { mode: 0o700 });
+    const result = run(preflight, config, ['--moon', fakeMoon]);
+    assert.equal(JSON.parse(result.stdout).checks.moonbitVersion.status, status);
+  }
+});
+
 test('verify entrypoint remains offline without explicit network authorization', t => {
   const config = fixture(t);
   const result = run(verify, config);

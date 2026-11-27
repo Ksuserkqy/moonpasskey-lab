@@ -446,6 +446,56 @@ fn ClientJsonScanner::text_field(
 }
 
 ///|
+/// Validate a transport JSON value with bounded nesting and unique decoded keys.
+/// Inputs are limited to 4,194,304 string units before UTF-8 encoding.
+pub fn validate_transport_json(input : String) -> Result[Unit, ParseError] {
+  if input.length() > 4_194_304 {
+    return Err({
+      offset: 0,
+      context: "input",
+      kind: ResourceLimit(
+        name="max_input_units",
+        limit=4_194_304,
+        actual=input.length().to_uint64(),
+      ),
+    })
+  }
+  let bytes = @utf8.encode(input)
+  let size = bytes.length()
+  let limits = @cbor.Limits::new(
+    max_input_bytes=size,
+    max_string_bytes=size,
+    max_array_items=size,
+    max_map_pairs=size,
+    max_depth=32,
+    max_values=size * 2 + 1,
+  )
+  let scanner : ClientJsonScanner = {
+    input: bytes[:],
+    limits,
+    offset: 0,
+    values: 0,
+    members: [],
+    fields: @sorted_map.SortedMap([]),
+  }
+  try {
+    scanner.space()
+    scanner.value(0, "input") |> ignore
+    scanner.space()
+    if scanner.offset < size {
+      raise fail_at(
+        scanner.offset,
+        "input",
+        TrailingData(remaining=size - scanner.offset),
+      )
+    }
+    Ok(())
+  } catch {
+    Failed(error) => Err(error)
+  }
+}
+
+///|
 /// Parse UTF-8 JSON with byte offsets, rejecting duplicate decoded names in
 /// every object. Limits reuse CBOR policy: keys and values count as nodes;
 /// strings count encoded content bytes excluding quotes. Unknown members are
