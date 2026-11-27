@@ -219,6 +219,27 @@ test "bridge deep JSON is bounded before recursive processing" {
 }
 
 ///|
+test "bridge JSON nesting limit counts containers but not string contents" {
+  let within_limit = String::make(32, '[') + "\"[{}]\"" + String::make(32, ']')
+  let report = @json.parse(@analysis.run_json(within_limit))
+  assert_eq(
+    bridge_field(bridge_field(report, "error"), "kind"),
+    Json::string("WrongType"),
+  )
+}
+
+///|
+test "bridge rejects duplicate decoded keys inside nested objects" {
+  let report = @json.parse(
+    @analysis.run_json("{\"command\":\"x\",\"nested\":{\"a\":1,\"\\u0061\":2}}"),
+  )
+  assert_eq(
+    bridge_field(bridge_field(report, "error"), "kind"),
+    Json::string("DuplicateField"),
+  )
+}
+
+///|
 test "bridge envelope length is bounded" {
   let report = @json.parse(@analysis.run_json(String::make(4_194_305, ' ')))
   assert_eq(

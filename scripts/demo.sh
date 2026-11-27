@@ -31,7 +31,7 @@ fi
 
 for tool in node npm moon moonc; do
   if ! command -v "$tool" >/dev/null 2>&1; then
-    printf 'Missing %s. Install Node.js 24.18.0 and MoonBit 0.10.20+65efd5b93 first.\n' "$tool" >&2
+    printf 'Missing %s. Install Node.js 24.18.0 and MoonBit 1.0.0-rc1+3c0520448 first.\n' "$tool" >&2
     exit 1
   fi
 done
@@ -40,8 +40,8 @@ if [ "$(node --version)" != 'v24.18.0' ]; then
   exit 1
 fi
 case "$(moonc -v)" in
-  'v0.10.20+65efd5b93 '*) ;;
-  *) printf '%s\n' 'This demo requires moonc v0.10.20+65efd5b93 on PATH.' >&2; exit 1 ;;
+  'v1.0.0-rc1+3c0520448 '*) ;;
+  *) printf '%s\n' 'This demo requires moonc v1.0.0-rc1+3c0520448 on PATH.' >&2; exit 1 ;;
 esac
 
 moon build analysis --target js --deny-warn

@@ -261,7 +261,7 @@ JSON 和 authenticatorData 分别复用同一个 `@cbor.Limits` 配置。原始�
 
 ## 依赖选择
 
-使用随工具链提供的 Apache-2.0 `moonbitlang/core`。项目与 CI 固定 `0.10.20+65efd5b93`，P5 在隔离安装的相同工具链上验收。P3/P4 部分历史本地检查使用 `0.10.21+f125caab5`，详细记录见 `DEVELOPMENT.md`。Base64URL、ByteReader、CBOR 与 JSON 字符串解码继续复用现有包及标准库。CBOR 的 WebAuthn 反向导入仅供官方 fixture 的测试，生产依赖保持单向。
+使用随工具链提供的 Apache-2.0 `moonbitlang/core`。项目与 CI 固定 `1.0.0-rc1+3c0520448`，P5 的历史验收使用 `0.10.20+65efd5b93`。P3/P4 部分历史本地检查使用 `0.10.21+f125caab5`，详细记录见 `DEVELOPMENT.md`。Base64URL、ByteReader、CBOR 与 JSON 字符串解码继续复用现有包及标准库。CBOR 的 WebAuthn 反向导入仅供官方 fixture 的测试，生产依赖保持单向。
 
 P5 首次增加外部依赖 `moonbitstack/mooncrypt@0.4.16`，对应 Git tag `v0.4.16` 的提交 `ad5f2e797c60a87e1f6541d1d6ba0dd94df70d9a`。实际解析的间接依赖为 moonbase 0.4.5、moondate 0.1.7、moonseed 0.1.3 和 moonbitlang/x 0.5.7，许可证均为 Apache-2.0。选用的 hash/sha2、sign/ecdsa 及其实际生产依赖路径没有引入平台 FFI。
 
@@ -286,4 +286,4 @@ flowchart LR
 
 `dashboard/` 只执行原生浏览器 WebAuthn 调用、ArrayBuffer 传输转换和结果展示。原始 clientDataJSON 从浏览器返回值直接编码，服务端解码后由 MoonBit 完成哈希与验签。静态文件由 RP 同源提供，依赖和字体在构建时本地打包。Dashboard 对外导出使用字段允许列表脱敏。
 
-P7 引入直接依赖 moonbitlang/x@0.5.7 用于当时的 CLI 文件 IO，该版本已经由 MoonCrypt 的既有依赖树引入。当前 CLI 使用目标专用的有界文件读取，wasm 目标依赖固定 Moonrun 内部接口。固定 MoonCrypt 0.4.16 和工具链保持原版本。JS 集成通过真实编译产物的 HTTP 测试验证，其他目标仍可独立使用 Core 和 CLI。[CLI](CLI.md) · [参考 RP](REFERENCE-RP.md) · [事务机制](CHALLENGE-LIFECYCLE.md)
+P7 引入直接依赖 moonbitlang/x@0.5.7 用于当时的 CLI 文件 IO，该版本已经由 MoonCrypt 的既有依赖树引入。当前 CLI 使用目标专用的有界文件读取，wasm 目标依赖固定 Moonrun 内部接口。MoonCrypt 保持固定版本 0.4.16。JS 集成通过真实编译产物的 HTTP 测试验证，其他目标仍可独立使用 Core 和 CLI。[CLI](CLI.md) · [参考 RP](REFERENCE-RP.md) · [事务机制](CHALLENGE-LIFECYCLE.md)

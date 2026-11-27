@@ -1,4 +1,4 @@
-// These imports match the Moonrun ABI bundled with the pinned 0.10.20
+// These imports match the Moonrun ABI bundled with the pinned 1.0.0-rc1
 // toolchain. The async ABI is private: changes to Moonrun require revalidation.
 
 ///|

@@ -16,7 +16,7 @@ RP ID 为 `passkey-test.ksuser.cn`，Origin 为 `https://passkey-test.ksuser.cn`
 | 路径 | 用途与权限 |
 | --- | --- |
 | `/opt/node-v24.18.0/` | 官方对应 CPU 的 Node，root 所有，服务只读 |
-| `/opt/moonbit-0.10.20/` | 固定 MoonBit 工具链，构建与离线预检使用 |
+| `/opt/moonbit-1.0.0-rc1/` | 固定 MoonBit 工具链，构建与离线预检使用 |
 | `/opt/moonpasskey/releases/<release>/` | 构建后的项目，root 所有，服务只读 |
 | `/opt/moonpasskey/current` | 指向维护者选定 release 的符号链接 |
 | `/var/lib/moonpasskey/` | moonpasskey:moonpasskey，0700，SQLite 与 WAL/SHM |
@@ -80,23 +80,23 @@ esac
 moon_stage=$(mktemp -d)
 cd "$moon_stage"
 curl --fail --show-error --silent --location --retry 3 \
-  "https://cli.moonbitlang.com/binaries/0.10.20%2B65efd5b93/moonbit-${moon_target}.tar.gz" -o moonbit.tar.gz
+  "https://cli.moonbitlang.com/binaries/1.0.0-rc1%2B3c0520448/moonbit-${moon_target}.tar.gz" -o moonbit.tar.gz
 curl --fail --show-error --silent --location --retry 3 \
-  'https://cli.moonbitlang.com/cores/core-0.10.20%2B65efd5b93.tar.gz' -o core.tar.gz
-sudo test ! -e /opt/moonbit-0.10.20
-sudo test ! -L /opt/moonbit-0.10.20
-sudo install -d -o root -g root -m 0755 /opt/moonbit-0.10.20
-sudo tar -xzf moonbit.tar.gz -C /opt/moonbit-0.10.20
-sudo tar -xzf core.tar.gz -C /opt/moonbit-0.10.20/lib
-sudo find /opt/moonbit-0.10.20/bin -type f -exec chmod a+x {} +
-sudo ln -sf moon /opt/moonbit-0.10.20/bin/moonx
-sudo env MOON_HOME=/opt/moonbit-0.10.20 PATH=/opt/moonbit-0.10.20/bin:/usr/bin:/bin \
-  /opt/moonbit-0.10.20/bin/moon -C /opt/moonbit-0.10.20/lib/core bundle --warn-list -a --all
-env MOON_HOME=/opt/moonbit-0.10.20 PATH=/opt/moonbit-0.10.20/bin:/usr/bin:/bin /opt/moonbit-0.10.20/bin/moon version --all
-/opt/moonbit-0.10.20/bin/moonc -v
+  'https://cli.moonbitlang.com/cores/core-1.0.0-rc1%2B3c0520448.tar.gz' -o core.tar.gz
+sudo test ! -e /opt/moonbit-1.0.0-rc1
+sudo test ! -L /opt/moonbit-1.0.0-rc1
+sudo install -d -o root -g root -m 0755 /opt/moonbit-1.0.0-rc1
+sudo tar -xzf moonbit.tar.gz -C /opt/moonbit-1.0.0-rc1
+sudo tar -xzf core.tar.gz -C /opt/moonbit-1.0.0-rc1/lib
+sudo find /opt/moonbit-1.0.0-rc1/bin -type f -exec chmod a+x {} +
+sudo ln -sf moon /opt/moonbit-1.0.0-rc1/bin/moonx
+sudo env MOON_HOME=/opt/moonbit-1.0.0-rc1 PATH=/opt/moonbit-1.0.0-rc1/bin:/usr/bin:/bin \
+  /opt/moonbit-1.0.0-rc1/bin/moon -C /opt/moonbit-1.0.0-rc1/lib/core bundle --warn-list -a --all
+env MOON_HOME=/opt/moonbit-1.0.0-rc1 PATH=/opt/moonbit-1.0.0-rc1/bin:/usr/bin:/bin /opt/moonbit-1.0.0-rc1/bin/moon version --all
+/opt/moonbit-1.0.0-rc1/bin/moonc -v
 ```
 
-期望 compiler/core 为 `0.10.20+65efd5b93`。构建依赖仍为 MoonCrypt 0.4.16。[Node 24.18.0 官方归档](https://nodejs.org/dist/v24.18.0/) · [MoonBit 安装](https://docs.moonbitlang.com/en/latest/download.html)
+期望 compiler/core 为 `1.0.0-rc1+3c0520448`。构建依赖仍为 MoonCrypt 0.4.16。此新版安装路径尚未在 Ubuntu 虚拟机重新验证；[既有验证记录](VALIDATION.md)使用旧版工具链。[Node 24.18.0 官方归档](https://nodejs.org/dist/v24.18.0/) · [MoonBit 安装](https://docs.moonbitlang.com/en/latest/download.html)
 
 ## 2. 源码与构建
 
@@ -118,7 +118,7 @@ set -eu
 mkdir -p "$HOME/moonpasskey-build"
 cd "$HOME/moonpasskey-build"
 tar -xzf /tmp/moonpasskey-source.tar.gz
-export MOON_HOME=/opt/moonbit-0.10.20
+export MOON_HOME=/opt/moonbit-1.0.0-rc1
 export PATH="/opt/node-v24.18.0/bin:$MOON_HOME/bin:$PATH"
 moon update
 moon info

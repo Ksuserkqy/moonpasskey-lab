@@ -1,6 +1,6 @@
 # Analysis CLI
 
-Phase 7 扩展已有 `cmd/main`。CLI、参考 RP 和 Dashboard 共用纯 MoonBit `analysis` 包及 P1–P6 验证入口。工具链固定为 `0.10.20+65efd5b93`，MoonCrypt 固定为 `0.4.16`。
+Phase 7 扩展已有 `cmd/main`。CLI、参考 RP 和 Dashboard 共用纯 MoonBit `analysis` 包及 P1–P6 验证入口。工具链固定为 `1.0.0-rc1+3c0520448`，MoonCrypt 固定为 `0.4.16`。
 
 ## 运行
 

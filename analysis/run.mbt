@@ -194,15 +194,15 @@ fn run(input : String, host : Bool) -> String {
     if input.length() > MAX_JSON_UNITS {
       raise BridgeError(code="ResourceLimit", path="input")
     }
-    let json = @json.parse(
-      input,
-      max_nesting_depth=32,
-      reject_duplicate_keys=true,
-    ) catch {
-      @json.DuplicateKey(_, _) =>
+    match @webauthn.validate_transport_json(input) {
+      Err({ kind: @webauthn.DuplicateMember(..), .. }) =>
         raise BridgeError(code="DuplicateField", path="input")
-      @json.DepthLimitExceeded =>
+      Err({ kind: @webauthn.ResourceLimit(..), .. }) =>
         raise BridgeError(code="ResourceLimit", path="input")
+      Err(_) => raise BridgeError(code="InvalidJson", path="input")
+      Ok(_) => ()
+    }
+    let json = @json.parse(input, reject_duplicate_keys=true) catch {
       _ => raise BridgeError(code="InvalidJson", path="input")
     }
     let fields = object(json, "input")
@@ -239,6 +239,7 @@ fn run(input : String, host : Bool) -> String {
 ///|
 /// Analyze transport JSON and return a redacted report. Binary transport uses
 /// strict unpadded Base64URL. This pure entry point performs no IO or storage.
+#export_name("run_json")
 pub fn run_json(input : String) -> String {
   run(input, false)
 }
@@ -247,6 +248,7 @@ pub fn run_json(input : String) -> String {
 /// Trusted RP-host entry point. TEST ONLY registration additionally returns
 /// a credential record for the host's private transactional store. The host
 /// must filter that record before producing logs or browser-facing reports.
+#export_name("run_host_json")
 pub fn run_host_json(input : String) -> String {
   run(input, true)
 }
