@@ -57,13 +57,13 @@ moon update
 
 ### Mooncakes 包
 
-已发布的 [`Ksuserkqy/moonpasskey_lab@0.1.0`](https://mooncakes.io/docs/Ksuserkqy/moonpasskey_lab) 可在 MoonBit 项目中安装：
+可从 [Mooncakes](https://mooncakes.io/docs/Ksuserkqy/moonpasskey_lab) 在 MoonBit 项目中安装：
 
 ```sh
-moon add Ksuserkqy/moonpasskey_lab@0.1.0
+moon add Ksuserkqy/moonpasskey_lab
 ```
 
-发布包早于本仓库的 MoonBit 1.0 RC 适配与 CLI 有界读取修复。在 RC 工具链下，独立消费者的 Base64URL 和 analysis 调用已通过测试；对 0.1.0 包源码执行 `moon check --target js --deny-warn` 会因旧 JSON API 的弃用诊断失败。仓库中的 0.1.1 是待发布候选，尚不能通过 Mooncakes 安装；需要上述修复时请使用当前仓库源码。[验收核查记录](docs/DEVELOPMENT.md#验收指南核查2026-11-28)
+`0.1.0` 早于 MoonBit 1.0 RC 适配与 CLI 有界读取修复。在 RC 工具链下，独立消费者的 Base64URL 和 analysis 调用已通过测试；对 `0.1.0` 包源码执行 `moon check --target js --deny-warn` 会因旧 JSON API 的弃用诊断失败。上述修复包含在 `0.1.1` 源码中；请在 Mooncakes 确认所需版本的实际发布状态。[验收核查记录](docs/DEVELOPMENT.md#验收指南核查2026-11-28)
 
 ## CLI 演示
 
