@@ -589,3 +589,21 @@ RC core 将 JSON 深度参数标记为弃用并计划将解析错误类型设为
 本地四目标各执行 `moon check`、`moon test`、`moon build`，均使用 `--deny-warn`，各 493 项测试通过；四目标 CLI 各 12 项通过；`moon info`、`moon fmt --check`、七个合成 CLI 场景及 Dashboard 检查、26 项测试和构建通过。实际启动本地 Demo 并通过 `http://localhost:18787/` 获取首页。四目标生成接口一致。JS 构建提示 CJS 暂不支持生成 TypeScript 声明。
 
 Reference RP 首次与其他测试并行执行时有 3 项并发断言失败，单独重跑 57 项全部通过；Node 输出文件描述符 unmanaged mode 警告，原因未确定，并发测试仍需关注。部署测试原先因沙箱禁止监听回环而有 2 项失败；允许本机回环后 43 项通过、1 项 Nginx 缺失跳过。新增预检版本测试后单独运行预检套件为 26 项通过。以上不是 Ubuntu 部署或 Windows 实机验证，也不是远程 CI 结果。
+
+## 验收指南核查（2026-11-28）
+
+基线为公开仓库 main 的 `9362c4c`，干净源码副本使用 macOS arm64、moon / moonrun `0.1.20261126`、moonc / core `1.0.0-rc1+3c0520448`。以下是工程证据，不代替主办方最终验收。
+
+| 要求 | 核查结果与证据 |
+| --- | --- |
+| MoonBit 与编译器版本 | Core、协议解析及验证使用 MoonBit；本地与 CI 均核对固定的 moonc 1.0.0-rc1。 |
+| 公开仓库和提交 | GitHub 仓库公开；main 的阶段合并及 Conventional Commit 记录可查。 |
+| 源码与核心功能 | Core、CLI、Reference RP 和 Dashboard 职责见 [架构](ARCHITECTURE.md)；合成 Assertion 成功及错误路径见下方示例测试。完整注册信任及其他限制见 [当前限制](LIMITATIONS.md)。 |
+| README 与复现 | 干净源码副本执行 `moon update`、`npm ci` 和 `DEMO_PORT=18789 ./scripts/demo.sh`，本地首页返回 HTTP 200；CLI 的七个合成场景符合预期。 |
+| CI | [main 运行 45965905281](https://github.com/Ksuserkqy/moonpasskey-lab/actions/runs/45965905281) 的 wasm、wasm-gc、js、native、Windows native CLI、Reference RP 和 Dashboard job 均通过，包含 check、test 和 build。 |
+| 可运行示例 | `./scripts/demo.sh cli` 对七个输入核对文本和 JSON 结果、错误类型与退出码，全部符合预期；本地服务启动并返回首页。 |
+| 核心测试 | `moon check/test/build --target <target> --deny-warn` 四目标均通过；每目标 Core 493/493、CLI 12/12。Dashboard 26/26；官方 Node 24.18.0 下 Reference RP 57/57。测试覆盖不构成完整 WebAuthn 符合性证明。 |
+| Mooncakes | `moon add Ksuserkqy/moonpasskey_lab@0.1.0` 在独立项目成功，Base64URL 往返与 analysis 错误输入调用测试 2/2；0.1.0 包源码在 RC 下严格检查有旧 JSON API 弃用诊断。0.1.1 是待发布候选，发布和安装验证尚未执行。 |
+| 许可证 | 项目使用 Apache-2.0；W3C、Wycheproof、NIST 数据及 Inter 字体的来源和适用许可分别保留在 README 链接的 NOTICE 中。发布包包含项目 LICENSE 与这些 NOTICE。 |
+
+本机 nvm Node 24.18.0 首次独立运行 Reference RP 时 55/57 通过，2 项并发断言失败并伴随文件描述符 unmanaged mode 警告；官方同版本 Darwin arm64 归档 SHA-256 `4477b9f78efb77744cf5eb57a0e9594dba66466b38b4e93fa9f35cb907a095a6` 与官方清单一致，重跑 57/57 且未出现该警告。原因尚未确定，不能将前次失败归因于已确认的根因。Dashboard 安装提示本机 npm 阻止可选 `fsevents` 安装脚本，检查、测试与构建成功。JS 构建仍提示 TypeScript 声明仅支持 ESM。候选版本的 `moon publish --dry-run` 因隔离工具链未登录 registry 而未能完成预检，没有发布任何版本。

@@ -55,6 +55,16 @@ moon update
 
 打开 [http://localhost:8787](http://localhost:8787)。脚本构建 Core、CLI 和 Dashboard，缺少前端依赖时执行 `npm ci`。本地服务使用内存 SQLite、UV required、counter report-only。端口占用时运行 `DEMO_PORT=8790 ./scripts/demo.sh`。按 Ctrl+C 停止服务，内存数据随进程结束清除。
 
+### Mooncakes 包
+
+已发布的 [`Ksuserkqy/moonpasskey_lab@0.1.0`](https://mooncakes.io/docs/Ksuserkqy/moonpasskey_lab) 可在 MoonBit 项目中安装：
+
+```sh
+moon add Ksuserkqy/moonpasskey_lab@0.1.0
+```
+
+发布包早于本仓库的 MoonBit 1.0 RC 适配与 CLI 有界读取修复。在 RC 工具链下，独立消费者的 Base64URL 和 analysis 调用已通过测试；对 0.1.0 包源码执行 `moon check --target js --deny-warn` 会因旧 JSON API 的弃用诊断失败。仓库中的 0.1.1 是待发布候选，尚不能通过 Mooncakes 安装；需要上述修复时请使用当前仓库源码。[验收核查记录](docs/DEVELOPMENT.md#验收指南核查2026-11-28)
+
 ## CLI 演示
 
 另开终端运行七个公开 SYNTHETIC 场景，每项均检查文本和 JSON 输出。脚本核对预期退出码、检查状态和错误类型。
